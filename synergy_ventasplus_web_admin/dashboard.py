@@ -29,7 +29,7 @@ class CustomIndexDashboard(Dashboard):
             collapsible=True,
             column=1,
             css_classes=('collapse closed',),
-            exclude=('django.contrib.*','dbadmin.models.Visita','dbadmin.admin.VisitaReschedule','dbadmin.admin.VisitaClose'),
+            exclude=('django.contrib.*','dbadmin.models.Visita','dbadmin.models.VisitaReschedule','dbadmin.models.VisitaClose'),
         ))
         
 

@@ -454,6 +454,19 @@ class Visita(models.Model):
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_visita'
 
+class VisitaClose(Visita):
+    class Meta:
+        proxy=True
+        verbose_name='Cerrar Visitas'
+        verbose_name_plural='Cerrar Visitas'
+        
+class VisitaReschedule(Visita):
+    class Meta:
+        proxy=True
+        verbose_name='Reagendar Visitas'
+        verbose_name_plural='Reagendar Visitas'        
+
+
 class Zona(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
     nombre = models.CharField(max_length=64L, blank=True)

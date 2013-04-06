@@ -19,7 +19,7 @@ from django.contrib.admin.templatetags.admin_list import date_hierarchy
 from django.contrib.auth.models import Group, User
 from django.contrib.sites.models import Site
 import time
-from dbadmin.models import Grupo, Motivo
+from dbadmin.models import Grupo, Motivo, VisitaReschedule, VisitaClose
 
 
 admin.site.unregister(Group)
@@ -306,11 +306,7 @@ class VisitaCreateAdmin(admin.ModelAdmin):
     
 admin.site.register(Visita,VisitaCreateAdmin)
 
-class VisitaReschedule(Visita):
-    class Meta:
-        proxy=True
-        verbose_name='Reagendar Visitas'
-        verbose_name_plural='Reagendar Visitas'
+
         
         
 class VisitaRescheduleAdmin(admin.ModelAdmin):
@@ -321,8 +317,6 @@ class VisitaRescheduleAdmin(admin.ModelAdmin):
     search_fields = ['id_cliente']    
     fields=('fecha_reagenda',)
     form=VisitaAdminForm
-    def has_add_permission(self, request):
-        return False    
     def save_model(self, request, obj, form, change):
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.field_inst_id=0
@@ -336,11 +330,7 @@ class VisitaRescheduleAdmin(admin.ModelAdmin):
     
 admin.site.register(VisitaReschedule,VisitaRescheduleAdmin)
 
-class VisitaClose(Visita):
-    class Meta:
-        proxy=True
-        verbose_name='Cerrar Visitas'
-        verbose_name_plural='Cerrar Visitas'
+
         
         
 class VisitaCloseAdmin(admin.ModelAdmin):
@@ -351,8 +341,6 @@ class VisitaCloseAdmin(admin.ModelAdmin):
     search_fields = ['id_cliente']    
     fields=('id_motivo_no_visita','id_motivo_no_cobranza','id_motivo_no_pedido','comentario','visitado')
     form=VisitaAdminForm
-    def has_add_permission(self, request):
-        return False    
     def save_model(self, request, obj, form, change):
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.field_inst_id=0
