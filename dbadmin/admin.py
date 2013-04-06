@@ -24,7 +24,7 @@ from dbadmin.models import Grupo, Motivo
 
 admin.site.unregister(Group)
 admin.site.unregister(Site)
-admin.site.unregister(User)
+#admin.site.unregister(User)
 
 class LogEntryAdmin(admin.ModelAdmin):
     list_display = ('format_action_time','user', 'content_type', 'object_id','object_repr','tipo_accion')
@@ -59,6 +59,21 @@ class ItemPedidoInline(admin.TabularInline):
              'porcentaje_impuesto','descuento_negativo'
              ]
     verbose_name='Productos Asociados'
+
+    def get_readonly_fields(self, request, obj=None):
+        if request.user.is_superuser:
+            return []
+        return self.readonly_fields
+
+    def has_add_permission(self, request):
+        if request.user.is_superuser:
+            return True
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        if request.user.is_superuser:
+            return True
+        return False
     
 class PedidoAdmin(admin.ModelAdmin):
     list_display = ('format_fecha','format_fecha_entrega','format_cliente','total','format_vendedor','tiene_comentario')
@@ -114,6 +129,21 @@ class PedidoAdmin(admin.ModelAdmin):
     ]
 
     readonly_fields =['fecha', 'fecha_entrega','id_cliente','field_owner_id','total']
+
+    def get_readonly_fields(self, request, obj=None):
+        if request.user.is_superuser:
+            return []
+        return self.readonly_fields
+
+    def has_add_permission(self, request):
+        if request.user.is_superuser:
+            return True
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        if request.user.is_superuser:
+            return True
+        return False
 
     def changelist_view(self, request,  extra_context=None):
         newrequest3=request
@@ -184,30 +214,6 @@ class VisitaAdminForm(forms.ModelForm):
         model = Visita
 
 
-class VisitaAdmin(admin.ModelAdmin):
-    list_display = ['id_cliente','format_fecha','visitado','comentario']    
-    dateformat='%d %b %Y %H:%M'
-    date_hierarchy='fecha'
-    list_filter = ['fecha','visitado']
-    search_fields = ['id_cliente']    
-    exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id','hora_inicio','hora_fin')
-    form=VisitaAdminForm
-    def save_model(self, request, obj, form, change):
-        obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
-        obj.field_inst_id=0
-        obj.field_permissions=0
-        obj.field_timestamp_c=int(time.time())
-        obj.field_timestamp_m=datetime.datetime.now()
-        #TODO: DONT HARDCODE GROUP
-        obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
-        obj.save()
-
-    def format_fecha(self, obj):
-        return obj.fecha.strftime(self.dateformat)
-    format_fecha.short_description = _('Fecha')
-    
-admin.site.register(Visita,VisitaAdmin)
-
 class UsuarioAdmin(admin.ModelAdmin):
     list_display = ('nombre','apellido','username','correo')
     search_fields = ['nombre','username','correo','apellido']
@@ -244,7 +250,7 @@ admin.site.register(CuentaPorCobrar,CuentaPorCobrarAdmin)
 class DepositoAdmin(admin.ModelAdmin):
     list_display = ('numero','id_banco','monto','fecha')
     search_fields = ['numero']
-    exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
+    exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id','latitud','longitud')
     def save_model(self, request, obj, form, change):
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.field_inst_id=0
@@ -256,3 +262,90 @@ class DepositoAdmin(admin.ModelAdmin):
         obj.save()
     
 admin.site.register(Deposito,DepositoAdmin)
+
+
+
+class VisitaCreateAdmin(admin.ModelAdmin):
+    list_display = ['id_cliente','format_fecha','visitado','comentario']    
+    dateformat='%d %b %Y %H:%M'
+    date_hierarchy='fecha'
+    list_filter = ['fecha','visitado']
+    search_fields = ['id_cliente']    
+    fields=('fecha','id_cliente','comentario')
+    exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id','hora_inicio','hora_fin')
+    form=VisitaAdminForm
+    def save_model(self, request, obj, form, change):
+        obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
+        obj.field_inst_id=0
+        obj.field_permissions=0
+        obj.field_timestamp_c=int(time.time())
+        obj.field_timestamp_m=datetime.datetime.now()
+        #TODO: DONT HARDCODE GROUP
+        obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
+        obj.save()
+
+    def format_fecha(self, obj):
+        return obj.fecha.strftime(self.dateformat)
+    format_fecha.short_description = _('Fecha')
+    
+admin.site.register(Visita,VisitaCreateAdmin)
+
+class VisitaReschedule(Visita):
+    class Meta:
+        proxy=True
+        verbose_name='Reagendar Visitas'
+        verbose_name_plural='Reagendar Visitas'
+        
+        
+class VisitaRescheduleAdmin(admin.ModelAdmin):
+    list_display = ['id_cliente','visitado','comentario']    
+    dateformat='%d %b %Y %H:%M'
+    date_hierarchy='fecha'
+    list_filter = ['fecha','visitado']
+    search_fields = ['id_cliente']    
+    fields=('fecha_reagenda',)
+    form=VisitaAdminForm
+    def has_add_permission(self, request):
+        return False    
+    def save_model(self, request, obj, form, change):
+        obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
+        obj.field_inst_id=0
+        obj.field_permissions=0
+        obj.field_timestamp_c=int(time.time())
+        obj.field_timestamp_m=datetime.datetime.now()
+        #TODO: DONT HARDCODE GROUP
+        obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
+        obj.save()
+
+    
+admin.site.register(VisitaReschedule,VisitaRescheduleAdmin)
+
+class VisitaClose(Visita):
+    class Meta:
+        proxy=True
+        verbose_name='Cerrar Visitas'
+        verbose_name_plural='Cerrar Visitas'
+        
+        
+class VisitaCloseAdmin(admin.ModelAdmin):
+    list_display = ['id_cliente','visitado','comentario']    
+    dateformat='%d %b %Y %H:%M'
+    date_hierarchy='fecha'
+    list_filter = ['fecha','visitado']
+    search_fields = ['id_cliente']    
+    fields=('id_motivo_no_visita','id_motivo_no_cobranza','id_motivo_no_pedido','comentario','visitado')
+    form=VisitaAdminForm
+    def has_add_permission(self, request):
+        return False    
+    def save_model(self, request, obj, form, change):
+        obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
+        obj.field_inst_id=0
+        obj.field_permissions=0
+        obj.field_timestamp_c=int(time.time())
+        obj.field_timestamp_m=datetime.datetime.now()
+        #TODO: DONT HARDCODE GROUP
+        obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
+        obj.save()
+
+    
+admin.site.register(VisitaClose,VisitaCloseAdmin)

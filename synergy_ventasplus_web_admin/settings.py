@@ -8,6 +8,7 @@ ADMINS = (
 )
 
 GRAPPELLI_ADMIN_TITLE='Ventas Plus Admin'
+GRAPPELLI_INDEX_DASHBOARD = 'synergy_ventasplus_web_admin.dashboard.CustomIndexDashboard'
 
 MANAGERS = ADMINS
 
@@ -95,6 +96,12 @@ TEMPLATE_LOADERS = (
     'django.template.loaders.app_directories.Loader',
 #     'django.template.loaders.eggs.Loader',
 )
+TEMPLATE_CONTEXT_PROCESSORS = (
+    "django.contrib.auth.context_processors.auth",
+    "django.core.context_processors.request",
+    "django.core.context_processors.i18n",
+    'django.contrib.messages.context_processors.messages',
+)
 
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
@@ -126,6 +133,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # Uncomment the next line to enable the admin:
+    'grappelli.dashboard',
     'grappelli',
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:

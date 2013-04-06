@@ -59,9 +59,9 @@ class Categoria(models.Model):
 
 class Cliente(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
-    codigo = models.CharField(max_length=64L, blank=True)
-    razon_social = models.CharField(max_length=64L, blank=True)
-    identificacion = models.CharField(max_length=16L, blank=True)
+    codigo = models.CharField(max_length=64L, blank=True , verbose_name=u'C\xF3digo')
+    razon_social = models.CharField(max_length=64L, blank=True, verbose_name=u'Raz\xF3n Social')
+    identificacion = models.CharField(max_length=16L, blank=True, verbose_name=u'Identificaci\xF3n')
     telefono1 = models.CharField(max_length=16L, blank=True, verbose_name=u'Tel\xE9fono')
     telefono2 = models.CharField(max_length=16L, blank=True, verbose_name=u'Tel\xE9fono Secundario')
     fax = models.CharField(max_length=16L, blank=True)
@@ -72,9 +72,9 @@ class Cliente(models.Model):
     descuento_maestro = models.FloatField(null=True, blank=True)
     descuento_otro1 = models.FloatField(null=True, blank=True)
     descuento_otro2 = models.FloatField(null=True, blank=True)
-    pc_nombre = models.CharField(max_length=64L, blank=True)
-    pc_telefono = models.CharField(max_length=16L, blank=True, verbose_name=u'Tel\xE9fono')
-    pc_celular = models.CharField(max_length=16L, blank=True, verbose_name=u'Celular')
+    pc_nombre = models.CharField(max_length=64L, blank=True , verbose_name=u'Persona de Contacto')
+    pc_telefono = models.CharField(max_length=16L, blank=True, verbose_name=u'Tel\xE9fono Persona de Contacto')
+    pc_celular = models.CharField(max_length=16L, blank=True, verbose_name=u'Celular Persona de Contacto')
     pc_cargo = models.CharField(max_length=64L, blank=True)
     pc_correo_electronico = models.CharField(max_length=64L, blank=True)
     pc_fecha_nacimiento = models.CharField(max_length=10L, blank=True)
@@ -166,7 +166,7 @@ class Deposito(models.Model):
     monto = models.FloatField(null=True, blank=True)
     #FIXME: CHANGED TO FK
     #id_banco = models.IntegerField(null=True, blank=True)
-    id_banco = models.ForeignKey('Banco', db_column='id_banco')       
+    id_banco = models.ForeignKey('Banco', db_column='id_banco', verbose_name=u'Banco')       
     fecha = models.DateField(null=True, blank=True)
     cuenta = models.CharField(max_length=64L, blank=True)
     latitud = models.FloatField(null=True, blank=True)
@@ -181,7 +181,9 @@ class Deposito(models.Model):
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_deposito'
-
+    def __unicode__(self):
+        return u'Deposito #'+self.numero
+    
 class DetalleProducto(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
     id_level = models.IntegerField(null=True, blank=True)
@@ -386,6 +388,8 @@ class Pedido(models.Model):
 
     tiene_comentario.allow_tags = True
     tiene_comentario.short_description = 'Comentario'
+    def __unicode__(self):
+        return self.numero    
     
 class Producto(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
