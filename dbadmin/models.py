@@ -135,10 +135,10 @@ class CuentaPorCobrar(models.Model):
     cancelada = models.NullBooleanField(null=True, blank=True)
     #FIXME: CHANGED TO FK
     #id_cliente = models.IntegerField(null=True, blank=True)
-    id_cliente = models.ForeignKey('Cliente', db_column='id_cliente')   
+    id_cliente = models.ForeignKey('Cliente', db_column='id_cliente',verbose_name="Cliente")   
     #FIXME: CHANGED TO FK
     #id_cobranza = models.IntegerField(null=True, blank=True)
-    id_cobranza = models.ForeignKey('Cobranza', db_column='id_cobranza')   
+    id_cobranza = models.ForeignKey('Cobranza', db_column='id_cobranza',verbose_name="Cobranza")   
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
     field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
