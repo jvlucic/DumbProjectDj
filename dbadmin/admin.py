@@ -317,6 +317,10 @@ class VisitaRescheduleAdmin(admin.ModelAdmin):
     search_fields = ['id_cliente']    
     fields=('fecha_reagenda',)
     form=VisitaAdminForm
+
+    def has_add_permission(self, request):
+        return False    
+    
     def save_model(self, request, obj, form, change):
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.field_inst_id=0
@@ -341,6 +345,10 @@ class VisitaCloseAdmin(admin.ModelAdmin):
     search_fields = ['id_cliente']    
     fields=('id_motivo_no_visita','id_motivo_no_cobranza','id_motivo_no_pedido','comentario','visitado')
     form=VisitaAdminForm
+    
+    def has_add_permission(self, request):
+        return False    
+
     def save_model(self, request, obj, form, change):
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.field_inst_id=0
