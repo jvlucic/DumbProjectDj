@@ -224,7 +224,7 @@ class DetalleProductoInline(admin.TabularInline):
         return False
 
 class ProductoCustomForm (forms.ModelForm):
-    categoria = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=1),required=True,label='Categoria'})
+    categoria = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=1),required=True,label='Categoria')
     tipo = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=2),required=True,label='Tipo')
     linea = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=3),required=True,label='Linea')
     calidad = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=4),required=True,label='Calidad')
