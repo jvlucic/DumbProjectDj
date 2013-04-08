@@ -56,6 +56,8 @@ class Categoria(models.Model):
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_categoria'
+    def __unicode__(self):
+        return self.nombre        
 
 class Cliente(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
@@ -93,7 +95,7 @@ class Cliente(models.Model):
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_cliente'
     def __unicode__(self):
-        return self.pc_nombre
+        return self.razon_social
     
 class Cobranza(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
@@ -186,7 +188,9 @@ class Deposito(models.Model):
     
 class DetalleProducto(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
+    #FIXME: CHANGED TO FK
     id_level = models.IntegerField(null=True, blank=True)
+#    id_level = models.ForeignKey('Categoria',null=False, blank=False,to_field='id_level')
     level = models.IntegerField(null=True, blank=True)
     descripcion_level = models.CharField(max_length=255L, blank=True)
     id_letter = models.CharField(max_length=16L, blank=True)
@@ -390,8 +394,13 @@ class Pedido(models.Model):
     tiene_comentario.short_description = 'Comentario'
     def __unicode__(self):
         return self.numero    
-    
+
+class DahlBookManager(models.Manager):
+    def get_queryset(self):
+        return super(DahlBookManager, self).get_queryset().filter(itemno='1000').annotate(testprop='BASURA')
+        
 class Producto(models.Model):
+    objects = DahlBookManager()
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
     itemno = models.CharField(max_length=64L, db_column='itemNo', blank=True) # Field name made lowercase.
     nombre = models.CharField(max_length=64L, blank=True)
@@ -411,7 +420,7 @@ class Producto(models.Model):
         db_table = 'ps_producto'
     def __unicode__(self):
         return self.nombre    
-    
+        
 class Unidad(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
     nombre = models.CharField(max_length=64L, blank=True)

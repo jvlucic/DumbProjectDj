@@ -19,7 +19,10 @@ from django.contrib.admin.templatetags.admin_list import date_hierarchy
 from django.contrib.auth.models import Group, User
 from django.contrib.sites.models import Site
 import time
-from dbadmin.models import Grupo, Motivo, VisitaReschedule, VisitaClose
+from dbadmin.models import Grupo, Motivo, VisitaReschedule, VisitaClose,\
+    DetalleProducto, Categoria
+from dbadmin.filters import ProductTreeListFilter
+from django.db import models
 
 
 admin.site.unregister(Group)
@@ -189,10 +192,81 @@ class ClienteAdmin(admin.ModelAdmin):
     
 admin.site.register(Cliente,ClienteAdmin)
 
+class DetalleProductoInlineForm(forms.ModelForm):
+    id_level=forms.ModelChoiceField(queryset=Categoria.objects.filter(id_level=1),required=True,label='Categoria')
+    level=forms.HiddenInput()
+    class Meta:
+        model = DetalleProducto
+
+
+class DetalleProductoInline(admin.TabularInline):
+    form=DetalleProductoInlineForm
+    model = DetalleProducto
+    extra= 6
+    fields=['id_level','level']
+#   readonly_fields =['id_level','level','descripcion_level','id_letter']
+    verbose_name='Detalle Producto'
+    verbose_name_plural='Detalle Producto'
+
+#    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+#        if db_field.name == "id_level":
+#            kwargs["queryset"] = Categoria.objects.filter(id_level=1)
+#        return super(DetalleProductoInline, self).formfield_for_foreignkey(db_field, request, **kwargs)
+ 
+    
+    def has_add_permission(self, request):
+        if request.user.is_superuser:
+            return True
+        return True
+
+    def has_delete_permission(self, request, obj=None):
+        if request.user.is_superuser:
+            return True
+        return False
+
+    
 class ProductoAdmin(admin.ModelAdmin):
-    list_display = ('itemno','nombre','precio','cantidad')
+    list_display = ('id_surrogate','itemno','categoria','tipo','linea','calidad','tamano','color','nombre','precio','cantidad')
     search_fields = ['nombre']
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
+    list_filter=[ProductTreeListFilter ,ProductTreeListFilter,ProductTreeListFilter,ProductTreeListFilter,ProductTreeListFilter,ProductTreeListFilter]
+    filterConfigData =  [
+                          {'title':_('Categoria'), 'parameter_name':'categoria', 'level':1},
+                          {'title':_('Tipo'), 'parameter_name':'tipo', 'level':2},
+                          {'title':_('Linea'), 'parameter_name':'linea', 'level':3},
+                          {'title':_('Calidad'), 'parameter_name':'calidad', 'level':4},
+                          {'title':_('Tamano'), 'parameter_name':'tamano', 'level':5},
+                          {'title':_('Color'), 'parameter_name':'color', 'level':6},                          
+                        ]
+    inlines = [
+        DetalleProductoInline,
+    ]
+        
+    def categoria(self, obj):
+        return DetalleProducto.objects.filter(id_producto=obj).get(level=1).descripcion_level 
+    categoria.short_description = 'Categoria'
+    
+    def tipo(self, obj):
+        return DetalleProducto.objects.filter(id_producto=obj).get(level=2).descripcion_level 
+    tipo.short_description = 'Tipo'
+    
+    def linea(self, obj):
+        return DetalleProducto.objects.filter(id_producto=obj).get(level=3).descripcion_level 
+    linea.short_description = 'Linea'
+    
+    def calidad(self, obj):
+        return DetalleProducto.objects.filter(id_producto=obj).get(level=4).descripcion_level 
+    calidad.short_description = 'Calidad'
+    
+    def tamano(self, obj):
+        return DetalleProducto.objects.filter(id_producto=obj).get(level=5).descripcion_level 
+    tamano.short_description = 'Tama\xF1o'
+
+    def color(self, obj):
+        return DetalleProducto.objects.filter(id_producto=obj).get(level=6).descripcion_level 
+    color.short_description = 'Color'
+
+        
     def save_model(self, request, obj, form, change):
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.field_inst_id=0
