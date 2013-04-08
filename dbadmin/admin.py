@@ -233,11 +233,10 @@ class ProductoCustomForm (forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(ProductoCustomForm, self).__init__(*args, **kwargs)
-#        self.fields['categoria'].queryset = Categoria.objects.filter(id_surrogate=2)
         if self.instance:
             for detalleProducto in  self.instance.detalleproducto_set.all():
                 level={1: 'categoria',2: 'tipo',3: 'linea',4: 'calidad',5: 'tamano',6: 'color',}.get(detalleProducto.level, None)
-                self.fields[level]=forms.ModelChoiceField(queryset=Categoria.objects.filter(level=detalleProducto.level),required=True,label='Categoria',initial=Categoria.objects.filter(level=detalleProducto.level,id_level=detalleProducto.id_level))
+                self.fields[level]=forms.ModelChoiceField(queryset=Categoria.objects.filter(level=detalleProducto.level),required=True,label=level.capitalize(),initial=Categoria.objects.filter(level=detalleProducto.level,id_level=detalleProducto.id_level))
     class Meta:
         model = Producto
 
