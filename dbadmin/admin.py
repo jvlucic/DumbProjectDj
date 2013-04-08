@@ -231,6 +231,13 @@ class ProductoCustomForm (forms.ModelForm):
     tamano = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=5),required=True,label='Tamano')
     color = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=6),required=True,label='Color')
 
+    def __init__(self, *args, **kwargs):
+        super(ProductoCustomForm, self).__init__(*args, **kwargs)
+#        self.fields['categoria'].queryset = Categoria.objects.filter(id_surrogate=2)
+        if self.instance:
+            for detalleProducto in  self.instance.detalleproducto_set.all():
+                level={1: 'categoria',2: 'tipo',3: 'linea',4: 'calidad',5: 'tamano',6: 'color',}.get(detalleProducto.level, None)
+                self.fields[level]=forms.ModelChoiceField(queryset=Categoria.objects.filter(level=detalleProducto.level),required=True,label='Categoria',initial=Categoria.objects.filter(level=detalleProducto.level,id_level=detalleProducto.id_level))
     class Meta:
         model = Producto
 
@@ -251,9 +258,7 @@ class ProductoAdmin(admin.ModelAdmin):
                           {'title':_('Calidad'), 'parameter_name':'calidad', 'level':4},
                           {'title':_('Tamano'), 'parameter_name':'tamano', 'level':5},
                           {'title':_('Color'), 'parameter_name':'color', 'level':6},                          
-                        ]
-    inlines=[DetalleProductoInline]
-    
+                        ]    
     def get_form(self, request, obj=None, **kwargs):
         
         return super(ProductoAdmin, self).get_form(request, obj=None, **kwargs)
@@ -284,8 +289,6 @@ class ProductoAdmin(admin.ModelAdmin):
 
         
     def save_model(self, request, obj, form, change):
-        print request.user.usuario.username
-        print 'NO ME CREIAN EL MALDITO'
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.field_inst_id=0
         obj.field_permissions=0
@@ -303,23 +306,30 @@ class ProductoAdmin(admin.ModelAdmin):
                         form.cleaned_data['color']
                         ]
         i=0
-        for categoria in categoria_list:
-            detalleProducto=DetalleProducto(id_level=categoria.id_level,
-                                            level=categoria.level, 
-                                            descripcion_level=categoria.nombre,
-                                            id_producto=producto
-                                            )
-            detalleProducto.field_owner_id = Usuario.objects.get(pk=producto.field_owner_id) 
-            detalleProducto.field_inst_id=0
-            detalleProducto.field_permissions=0
-            detalleProducto.field_timestamp_c=int(time.time()+i)
-            print 'IDS'
-            print str(detalleProducto.field_owner_id)+'-'+str(detalleProducto.field_timestamp_c)
-            detalleProducto.field_timestamp_m=datetime.datetime.now()
-            #TODO: DONT HARDCODE GROUP
-            detalleProducto.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
-            detalleProducto.save()        
-            i+=1
+        relatedDp=obj.detalleproducto_set.all()
+        if (relatedDp):
+            for detalleProducto in  relatedDp:
+                level={1: 'categoria',2: 'tipo',3: 'linea',4: 'calidad',5: 'tamano',6: 'color',}.get(detalleProducto.level, None)
+                detalleProducto.id_level=form.cleaned_data[level].id_level
+                detalleProducto.level=form.cleaned_data[level].level
+                detalleProducto.descripcion_level=form.cleaned_data[level].nombre
+                detalleProducto.save()
+        else:
+            for categoria in categoria_list:
+                detalleProducto=DetalleProducto(id_level=categoria.id_level,
+                                                level=categoria.level, 
+                                                descripcion_level=categoria.nombre,
+                                                id_producto=producto
+                                                )
+                detalleProducto.field_owner_id = Usuario.objects.get(pk=producto.field_owner_id) 
+                detalleProducto.field_inst_id=0
+                detalleProducto.field_permissions=0
+                detalleProducto.field_timestamp_c=int(time.time()+i)
+                detalleProducto.field_timestamp_m=datetime.datetime.now()
+                #TODO: DONT HARDCODE GROUP
+                detalleProducto.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
+                detalleProducto.save()        
+                i+=1
 
 admin.site.register(Producto,ProductoAdmin)
 
