@@ -200,7 +200,6 @@ class DetalleProductoInlineForm(forms.ModelForm):
 
 
 class DetalleProductoInline(admin.TabularInline):
-    form=DetalleProductoInlineForm
     model = DetalleProducto
     extra= 6
     fields=['id_level','level']
@@ -224,12 +223,27 @@ class DetalleProductoInline(admin.TabularInline):
             return True
         return False
 
-    
+class ProductoCustomForm (forms.ModelForm):
+    categoria = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=1),required=True,label='Categoria'})
+    tipo = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=2),required=True,label='Tipo')
+    linea = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=3),required=True,label='Linea')
+    calidad = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=4),required=True,label='Calidad')
+    tamano = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=5),required=True,label='Tamano')
+    color = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=6),required=True,label='Color')
+
+    class Meta:
+        model = Producto
+
+                        
+            
 class ProductoAdmin(admin.ModelAdmin):
     list_display = ('id_surrogate','itemno','categoria','tipo','linea','calidad','tamano','color','nombre','precio','cantidad')
     search_fields = ['nombre']
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
     list_filter=[ProductTreeListFilter ,ProductTreeListFilter,ProductTreeListFilter,ProductTreeListFilter,ProductTreeListFilter,ProductTreeListFilter]
+
+    form=ProductoCustomForm
+    
     filterConfigData =  [
                           {'title':_('Categoria'), 'parameter_name':'categoria', 'level':1},
                           {'title':_('Tipo'), 'parameter_name':'tipo', 'level':2},
@@ -238,10 +252,12 @@ class ProductoAdmin(admin.ModelAdmin):
                           {'title':_('Tamano'), 'parameter_name':'tamano', 'level':5},
                           {'title':_('Color'), 'parameter_name':'color', 'level':6},                          
                         ]
-    inlines = [
-        DetalleProductoInline,
-    ]
+    inlines=[DetalleProductoInline]
+    
+    def get_form(self, request, obj=None, **kwargs):
         
+        return super(ProductoAdmin, self).get_form(request, obj=None, **kwargs)
+    
     def categoria(self, obj):
         return DetalleProducto.objects.filter(id_producto=obj).get(level=1).descripcion_level 
     categoria.short_description = 'Categoria'
@@ -268,6 +284,8 @@ class ProductoAdmin(admin.ModelAdmin):
 
         
     def save_model(self, request, obj, form, change):
+        print request.user.usuario.username
+        print 'NO ME CREIAN EL MALDITO'
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.field_inst_id=0
         obj.field_permissions=0
@@ -276,7 +294,33 @@ class ProductoAdmin(admin.ModelAdmin):
         #TODO: DONT HARDCODE GROUP
         obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
         obj.save()
-            
+        producto=obj
+        categoria_list=[form.cleaned_data['categoria'],
+                        form.cleaned_data['tipo'],
+                        form.cleaned_data['linea'],
+                        form.cleaned_data['calidad'],
+                        form.cleaned_data['tamano'],
+                        form.cleaned_data['color']
+                        ]
+        i=0
+        for categoria in categoria_list:
+            detalleProducto=DetalleProducto(id_level=categoria.id_level,
+                                            level=categoria.level, 
+                                            descripcion_level=categoria.nombre,
+                                            id_producto=producto
+                                            )
+            detalleProducto.field_owner_id = Usuario.objects.get(pk=producto.field_owner_id) 
+            detalleProducto.field_inst_id=0
+            detalleProducto.field_permissions=0
+            detalleProducto.field_timestamp_c=int(time.time()+i)
+            print 'IDS'
+            print str(detalleProducto.field_owner_id)+'-'+str(detalleProducto.field_timestamp_c)
+            detalleProducto.field_timestamp_m=datetime.datetime.now()
+            #TODO: DONT HARDCODE GROUP
+            detalleProducto.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
+            detalleProducto.save()        
+            i+=1
+
 admin.site.register(Producto,ProductoAdmin)
 
 class VisitaAdminForm(forms.ModelForm):
