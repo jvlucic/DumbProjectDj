@@ -23,10 +23,9 @@ class DateRangeForm(forms.Form):
         super(DateRangeForm, self).__init__(*args, **kwargs)
 
 #        self.fields['%s__gte' % field_name] = forms.DateField(label='', widget=AdminDateWidget(attrs={'placeholder': _('From date')}), localize=True,required=False)
-        self.fields['%s__gte' % field_name] = forms.DateField(label='', widget=DateInput(attrs={'placeholder': _('From brbrbrb')  , 'class':'vDateField' }), localize=True,required=False)
-        self.fields['%s__lte' % field_name] = forms.DateField(
-            label='', widget=AdminDateWidget(attrs={'placeholder': _('To date')}), localize=True,
-            required=False)
+        self.fields['%s__gte' % field_name] = forms.DateField(label='', widget=DateInput(attrs={'placeholder': _('Desde')  , 'class':'vDateField' }), localize=True,required=False)
+        self.fields['%s__lte' % field_name] = forms.DateField(label='', widget=DateInput(attrs={'placeholder': _('Hasta')  , 'class':'vDateField' }), localize=True,required=False)
+
     class Media:
         js = ("js/grappelli_custom_datepicker_template.js",)
 
