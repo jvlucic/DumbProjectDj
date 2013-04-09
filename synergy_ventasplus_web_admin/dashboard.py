@@ -17,19 +17,20 @@ class CustomIndexDashboard(Dashboard):
     """
     Custom index dashboard for www.
     """
-    
-    def init_with_context(self, context):
-        site_name = get_admin_site_name(context)
+    title=_('Administrador de Ventas Plus')
         
+        
+    def init_with_context(self, context):
+        site_name = 'Administrador de Ventas Plus'
                 
         
         # append an app list module for "Applications"
         self.children.append(modules.AppList(
-            _('Entidades para Administrar'),
+            _('Entidades para administrar'),
             collapsible=True,
             column=1,
             css_classes=('collapse closed',),
-            exclude=('django.contrib.*','dbadmin.models.Visita','dbadmin.models.VisitaReschedule','dbadmin.models.VisitaClose'),
+            exclude=('django.contrib','dbadmin.models.Visita','dbadmin.models.VisitaReschedule','dbadmin.models.VisitaClose'),
         ))
         
 

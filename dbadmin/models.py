@@ -14,6 +14,9 @@ from synergy_ventasplus_web_admin import model_util
 from django.template.defaultfilters import default
 from django.utils.datetime_safe import datetime
 from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.contrib import messages
+from django.db.models import signals
 
 
 class Grupo(models.Model):
@@ -21,7 +24,7 @@ class Grupo(models.Model):
     descripcion = models.CharField(max_length=512L, blank=True)
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         db_table = 'grupo'
         
@@ -29,12 +32,12 @@ class Banco(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
     nombre = models.CharField(max_length=64L, blank=True)
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField( db_column='_permissions', null=False, default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')        
         db_table = 'ps_banco'
@@ -47,12 +50,12 @@ class Categoria(models.Model):
     id_level = models.IntegerField(null=True, blank=True,db_column='id_level')
     level = models.IntegerField(null=True, blank=True)
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_categoria'
@@ -67,7 +70,7 @@ class Cliente(models.Model):
     telefono1 = models.CharField(max_length=16L, blank=True, verbose_name=u'Tel\xE9fono')
     telefono2 = models.CharField(max_length=16L, blank=True, verbose_name=u'Tel\xE9fono Secundario')
     fax = models.CharField(max_length=16L, blank=True)
-    correo = models.CharField(max_length=64L, blank=True)
+    correo = models.CharField(max_length=128L, blank=True)
     comentario = models.CharField(max_length=255L, blank=True)
     tipo = models.IntegerField(null=True, blank=True)
     flete = models.FloatField(null=True, blank=True)
@@ -77,20 +80,20 @@ class Cliente(models.Model):
     pc_nombre = models.CharField(max_length=64L, blank=True , verbose_name=u'Persona de Contacto')
     pc_telefono = models.CharField(max_length=16L, blank=True, verbose_name=u'Tel\xE9fono Persona de Contacto')
     pc_celular = models.CharField(max_length=16L, blank=True, verbose_name=u'Celular Persona de Contacto')
-    pc_cargo = models.CharField(max_length=64L, blank=True)
-    pc_correo_electronico = models.CharField(max_length=64L, blank=True)
-    pc_fecha_nacimiento = models.CharField(max_length=10L, blank=True)
-    id_lista_precio = models.CharField(max_length=16L, blank=True)
+    pc_cargo = models.CharField(max_length=64L, blank=True, verbose_name=u'Cargo Persona de Contacto')
+    pc_correo_electronico = models.CharField(max_length=128L, blank=True, verbose_name=u'Email Persona de Contacto')
+    pc_fecha_nacimiento = models.CharField(max_length=10L, blank=True, verbose_name=u'Fecha Nac. Persona de Contacto')
+    id_lista_precio = models.CharField(max_length=16L, blank=True, verbose_name=u'Lista de precio')
     #FIXME: CHANGED TO FK
     #id_zona = models.IntegerField(null=True, blank=True)
-    id_zona = models.ForeignKey('Zona', db_column='id_zona')
+    id_zona = models.ForeignKey('Zona', db_column='id_zona', verbose_name=u'Zona')
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_cliente'
@@ -99,7 +102,7 @@ class Cliente(models.Model):
     
 class Cobranza(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
-    numero_recibo = models.CharField(max_length=64L, blank=True)
+    numero_recibo = models.CharField(max_length=64L, blank=True,verbose_name="N\xFAmero de recibo")
     impreso = models.NullBooleanField(null=True, blank=True)
     fecha_impreso = models.DateField(null=True, blank=True)
     fecha = models.DateField(null=True, blank=True)
@@ -112,12 +115,12 @@ class Cobranza(models.Model):
     latitud = models.FloatField(null=True, blank=True)
     longitud = models.FloatField(null=True, blank=True)
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_cobranza'
@@ -126,7 +129,7 @@ class Cobranza(models.Model):
     
 class CuentaPorCobrar(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
-    numero_documento = models.CharField(max_length=64L, blank=True)
+    numero_documento = models.CharField(max_length=64L, blank=True,verbose_name="N\xFAmero")
     monto_original = models.FloatField(null=True, blank=True)
     saldo_actual = models.FloatField(null=True, blank=True)
     fecha_documento = models.DateField(null=True, blank=True)
@@ -142,18 +145,18 @@ class CuentaPorCobrar(models.Model):
     #id_cobranza = models.IntegerField(null=True, blank=True)
     id_cobranza = models.ForeignKey('Cobranza', db_column='id_cobranza',verbose_name="Cobranza")   
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_cuenta_por_cobrar'
         verbose_name_plural='Cuentas por cobrar'
     def __unicode__(self):
-        return self.id_cliente.pc_nombre+" ("+self.numero_documento+")"
+        return self.numero_documento
     def esta_vencida(self):
         if ( self.fecha_vencimiento and (self.cancelada or self.fecha_vencimiento>datetime.date(datetime.now()))):        
             return mark_safe('<img src="/static/admin/img/icon-yes.gif" alt="Si">')
@@ -161,10 +164,11 @@ class CuentaPorCobrar(models.Model):
             return mark_safe('<img src="/static/admin/img/icon-no.gif" alt="No">')
     esta_vencida.allow_tags = True
     esta_vencida.short_description = 'Vigente'
+    
         
 class Deposito(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
-    numero = models.CharField(max_length=64L, blank=True)
+    numero = models.CharField(max_length=64L, blank=True,verbose_name="N\xFAmero")
     monto = models.FloatField(null=True, blank=True)
     #FIXME: CHANGED TO FK
     #id_banco = models.IntegerField(null=True, blank=True)
@@ -174,17 +178,20 @@ class Deposito(models.Model):
     latitud = models.FloatField(null=True, blank=True)
     longitud = models.FloatField(null=True, blank=True)
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_deposito'
+        verbose_name=u'Dep\xF3sito'
+        verbose_name_plural=u'Dep\xF3sito'
+        
     def __unicode__(self):
-        return u'Deposito #'+self.numero
+        return self.numero
     
 class DetalleProducto(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
@@ -196,14 +203,14 @@ class DetalleProducto(models.Model):
     id_letter = models.CharField(max_length=16L, blank=True)
     #FIXME: CHANGED TO FK
     #id_producto = models.IntegerField(max_length=64L,null=True, blank=True)
-    id_producto = models.ForeignKey('Producto', max_length=64L, db_column='id_producto',null=True, blank=True)      
+    id_producto = models.ForeignKey('Producto', max_length=64L, db_column='id_producto',null=True, blank=True, verbose_name='Producto')      
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_detalle_producto'
@@ -216,15 +223,15 @@ class Direccion(models.Model):
     longitud = models.FloatField(null=True, blank=True)
     #FIXME: CHANGED TO FK
     #id_cliente = models.IntegerField(null=True, blank=True)
-    id_cliente = models.ForeignKey('Cliente', db_column='id_cliente')       
+    id_cliente = models.ForeignKey('Cliente', db_column='id_cliente', verbose_name='Cliente')       
     flete = models.FloatField(null=True, blank=True)
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_direccion'
@@ -236,17 +243,17 @@ class Item(models.Model):
     codigo_barra = models.CharField(max_length=64L, blank=True)   
     #FIXME: CHANGED TO FK
     #id_producto = models.IntegerField(max_length=64L,null=True, blank=True)
-    id_producto = models.ForeignKey('Producto', max_length=64L, db_column='id_producto',null=True, blank=True)      
+    id_producto = models.ForeignKey('Producto', max_length=64L, db_column='id_producto',null=True, blank=True, verbose_name='Producto')      
     #FIXME: CHANGED TO FK
     #id_unidad = models.IntegerField(max_length=64L,null=True, blank=True)
     id_unidad = models.ForeignKey('Unidad', max_length=64L, db_column='id_unidad',null=True, blank=True)      
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_item'
@@ -270,57 +277,62 @@ class ItemPedido(models.Model):
     id_unidad = models.ForeignKey('Unidad', max_length=64L, db_column='id_unidad',null=True, blank=True)          
     #FIXME: CHANGED TO FK
     #id_producto = models.IntegerField(max_length=64L,null=True, blank=True)
-    id_producto = models.ForeignKey('Producto', max_length=64L, db_column='id_producto',null=True, blank=True)      
+    id_producto = models.ForeignKey('Producto', max_length=64L, db_column='id_producto',null=True, blank=True, verbose_name='Producto')      
     #FIXME: CHANGED TO FK
     #id_pedido = models.IntegerField(max_length=64L,null=True, blank=True)
     id_pedido = models.ForeignKey('Pedido', db_column='id_pedido',null=True, blank=True)      
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_item_pedido'
+    def __unicode__(self):
+        return self.id_surrogate
+     
 
 class MetodoPago(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
     nombre = models.CharField(max_length=64L, blank=True)
     banco = models.NullBooleanField(null=True, blank=True)
     monto = models.NullBooleanField(null=True, blank=True)
-    numero = models.NullBooleanField(null=True, blank=True)
+    numero = models.NullBooleanField(null=True, blank=True,verbose_name="N\xFAmero")
     fecha = models.NullBooleanField(null=True, blank=True)
     titular = models.NullBooleanField(null=True, blank=True)
-    deposito = models.NullBooleanField(null=True, blank=True)    
+    deposito = models.NullBooleanField(null=True, blank=True,verbose_name=u'Dep\xF3sito')    
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_metodo_pago'
-
+    def __unicode__(self):
+        return self.nombre
+            
 class Motivo(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
     nombre = models.CharField(max_length=64L, blank=True)
     tipo = models.IntegerField(null=True, blank=True)
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_motivo'
     def __unicode__(self):
-        return self.nombre
+        return str(self.nombre)
 
 class Pago(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
@@ -329,7 +341,7 @@ class Pago(models.Model):
     #id_banco = models.IntegerField(null=True, blank=True)
     id_banco = models.ForeignKey('Banco', db_column='id_banco')     
     fecha_documento = models.DateField(null=True, blank=True)
-    numero_documento = models.CharField(max_length=64L, blank=True)
+    numero_documento = models.CharField(max_length=64L, blank=True,verbose_name="N\xFAmero de documento")
     titular = models.CharField(max_length=64L, blank=True)
     saldo = models.FloatField(null=True, blank=True)
     #FIXME: CHANGED TO FK
@@ -337,22 +349,22 @@ class Pago(models.Model):
     id_cobranza = models.ForeignKey('Cobranza', db_column='id_cobranza')   
     #FIXME: CHANGED TO FK
     #id_deposito = models.CharField(max_length=64L, blank=True)
-    id_deposito = models.ForeignKey('Deposito', db_column='id_deposito')       
+    id_deposito = models.ForeignKey('Deposito', db_column='id_deposito',verbose_name=u'Dep\xF3sito')       
     id_metodo_pago = models.IntegerField(null=True, blank=True)
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_pago'
 
 class Pedido(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
-    numero = models.CharField(max_length=64L, blank=True)
+    numero = models.CharField(max_length=64L, blank=True,verbose_name=u'N\xFAmero')
     fecha = models.DateField(null=True, blank=True)
     fecha_entrega = models.DateField(null=True, blank=True)
     orden_de_compra = models.CharField(max_length=64L, blank=True)
@@ -370,17 +382,17 @@ class Pedido(models.Model):
     longitud = models.FloatField(null=True, blank=True)
     #FIXME: CHANGED TO FK
     #id_cliente = models.IntegerField(null=True, blank=True)
-    id_cliente = models.ForeignKey('Cliente', db_column='id_cliente')    
+    id_cliente = models.ForeignKey('Cliente', db_column='id_cliente', verbose_name='Cliente')    
     #FIXME: CHANGED TO FK
     #id_metodo_pago = models.IntegerField(null=True, blank=True)
-    id_metodo_pago = models.ForeignKey('MetodoPago', db_column='id_metodo_pago')
+    id_metodo_pago = models.ForeignKey('MetodoPago', db_column='id_metodo_pago',verbose_name=u'M\xE9todo de Pago')
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_pedido'
@@ -391,9 +403,9 @@ class Pedido(models.Model):
             return mark_safe('<img src="/static/admin/img/icon_error.gif" alt="No">')
 
     tiene_comentario.allow_tags = True
-    tiene_comentario.short_description = 'Comentario'
+    tiene_comentario.short_description = '\xBFTiene Comentario?'
     def __unicode__(self):
-        return self.numero    
+        return '#'+self.numero; 
 
 class DahlBookManager(models.Manager):
     def get_queryset(self):
@@ -409,12 +421,12 @@ class Producto(models.Model):
     comentario = models.CharField(max_length=255L, blank=True)
     imagen = models.CharField(max_length=255L, blank=True)
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id',default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_producto'
@@ -426,12 +438,12 @@ class Unidad(models.Model):
     nombre = models.CharField(max_length=64L, blank=True)
     unidad = models.IntegerField(null=True, blank=True)
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_unidad'
@@ -440,7 +452,7 @@ class Visita(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
     hora_inicio = models.CharField(max_length=16L, blank=True)
     hora_fin = models.CharField(max_length=16L, blank=True)
-    fecha_reagenda = models.DateField(null=True, blank=True)
+    fecha_reagenda = models.DateField(null=True, blank=True,verbose_name='Nueva Fecha')
     id_motivo_visita = models.ForeignKey('Motivo',null=True, blank=True, verbose_name='Motivo Visita',db_column='id_motivo_visita')
     id_motivo_no_visita = models.ForeignKey('Motivo',null=True, blank=True, verbose_name='Motivo No Visita',related_name='novisita',db_column='id_motivo_no_visita')
     id_motivo_no_cobranza = models.ForeignKey('Motivo',null=True, blank=True, verbose_name='Motivo No Cobranza',related_name='nocobranza',db_column='id_motivo_no_cobranza')
@@ -453,39 +465,45 @@ class Visita(models.Model):
     visitado = models.NullBooleanField(null=True, blank=True)
     fecha_modificacion = models.DateField(null=True, blank=True)
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_visita'
-
+    def __unicode__(self):
+        return str(self.id_cliente)+' Fecha: '+str(self.fecha)
+        
 class VisitaClose(Visita):
     class Meta:
         proxy=True
         verbose_name='Cerrar Visitas'
         verbose_name_plural='Cerrar Visitas'
+    def __unicode__(self):
+        return str(self.id_cliente)+' Fecha: '+str(self.fecha)+" CERRADA"        
         
 class VisitaReschedule(Visita):
     class Meta:
         proxy=True
         verbose_name='Reagendar Visitas'
         verbose_name_plural='Reagendar Visitas'        
+    def __unicode__(self):
+        return str(self.id_cliente)+' Fecha: '+str(self.fecha)+" REAGENDADA"        
 
 
 class Zona(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
     nombre = models.CharField(max_length=64L, blank=True)
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_zona'
@@ -496,12 +514,12 @@ class ZonaUsuario(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
     id_usuario_app = models.IntegerField(null=True, blank=True)
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
-    field_inst_id  = models.CharField(max_length=255L, db_column='_inst_id')
+    field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=True) # Field renamed because it started with '_'.
     field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_zona_usuario'
@@ -511,7 +529,7 @@ class RsGrupoUsuario(models.Model):
     username = models.ForeignKey('Usuario', db_column='username')
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         db_table = 'rs_grupo_usuario'
 
@@ -519,12 +537,12 @@ class Usuario(models.Model):
     nombre = models.CharField(max_length=64L, blank=True)
     apellido = models.CharField(max_length=64L, blank=True)
     codigo = models.CharField(max_length=64L, blank=True, verbose_name=u'C\xF3digo')
-    username = models.CharField(max_length=32L, primary_key=True)
+    username = models.CharField(max_length=32L, primary_key=True, verbose_name=u'Nombre de Usuario')
     password = models.CharField(max_length=32L, blank=True)
-    correo = models.CharField(max_length=32L, blank=True)
+    correo = models.CharField(max_length=128L, blank=True)
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
-    field_deleted = models.BooleanField(db_column='_deleted') # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     adminuser = models.OneToOneField(User, null=True, blank=True)
     class Meta:
         db_table = 'usuario'

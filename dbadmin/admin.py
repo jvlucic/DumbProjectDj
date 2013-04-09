@@ -3,7 +3,7 @@ Created on 01/03/2011
 
 @author: Jorge
 '''
-from django.contrib import admin
+from django.contrib import admin, messages
 from models import Pedido, Cliente, Usuario, ItemPedido, Producto, Unidad, Visita,Cobranza,CuentaPorCobrar, Deposito
 
 from django.http import HttpRequest
@@ -21,13 +21,18 @@ from django.contrib.sites.models import Site
 import time
 from dbadmin.models import Grupo, Motivo, VisitaReschedule, VisitaClose,\
     DetalleProducto, Categoria
-from dbadmin.filters import ProductTreeListFilter
+from dbadmin.filters import ProductTreeListFilter, DateRangeFilter
 from django.db import models
+from django.db.models.signals import post_save
+from django.contrib.comments.signals import comment_was_posted
+import re
+import locale
 
 
 admin.site.unregister(Group)
 admin.site.unregister(Site)
 #admin.site.unregister(User)
+
 
 class LogEntryAdmin(admin.ModelAdmin):
     list_display = ('format_action_time','user', 'content_type', 'object_id','object_repr','tipo_accion')
@@ -84,6 +89,11 @@ class PedidoAdmin(admin.ModelAdmin):
     date_hierarchy = 'fecha'
     dateformat='%d %b %Y '
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
+    list_filter=[('fecha', DateRangeFilter)]
+    fields=['fecha','id_cliente','fecha_entrega','id_metodo_pago','numero']
+    class Media:
+        js = ("js/grappelli_custom_datepicker_template_dom_init.js",)
+        
     def save_model(self, request, obj, form, change):
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.field_inst_id=0
@@ -121,12 +131,12 @@ class PedidoAdmin(admin.ModelAdmin):
     format_fecha_entrega.admin_order_field = 'fecha_entrega'
     
     search_fields = ['id_cliente__pc_nombre']
-    fieldsets = [
-        ('Encabezado',{'fields': ['fecha','id_cliente','fecha_entrega']}),
-        ('Datos Adicionales', {'fields': ['total'],
-                               'classes': ['collapse']
-                               }),
-    ]
+   # fieldsets = [
+   #     ('Encabezado',{'fields': ['fecha','id_cliente','fecha_entrega']}),
+   #     ('Datos Adicionales', {'fields': ['total'],
+    #                           'classes': ['collapse']
+#                               }),
+ #   ]
     inlines = [
         ItemPedidoInline,
     ]
@@ -135,7 +145,7 @@ class PedidoAdmin(admin.ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         if request.user.is_superuser:
-            return []
+            return ['total']
         return self.readonly_fields
 
     def has_add_permission(self, request):
@@ -177,7 +187,7 @@ class PedidoAdmin(admin.ModelAdmin):
 admin.site.register(Pedido,PedidoAdmin)    
 
 class ClienteAdmin(admin.ModelAdmin):
-    list_display = ('pc_nombre','pc_telefono','identificacion')
+    list_display = ('razon_social','pc_nombre','pc_telefono','identificacion')
     search_fields = ['pc_nombre']
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
     def save_model(self, request, obj, form, change):
@@ -332,19 +342,19 @@ class ProductoAdmin(admin.ModelAdmin):
 
 admin.site.register(Producto,ProductoAdmin)
 
-class VisitaAdminForm(forms.ModelForm):
-    id_motivo_visita=forms.ModelChoiceField(queryset=Motivo.objects.filter(tipo=1),required=False,label='Motivo Visita')
-    id_motivo_no_visita=forms.ModelChoiceField(queryset=Motivo.objects.filter(tipo=2),required=False, label='Motivo No Visita')
-    id_motivo_no_cobranza=forms.ModelChoiceField(queryset=Motivo.objects.filter(tipo=3),required=False, label='Motivo No Cobranza')
-    id_motivo_no_pedido=forms.ModelChoiceField(queryset=Motivo.objects.filter(tipo=4),required=False, label='Motivo No Pedido')
-    class Meta:
-        model = Visita
+
 
 
 class UsuarioAdmin(admin.ModelAdmin):
-    list_display = ('nombre','apellido','username','correo')
+    list_display = ('username','nombre','apellido','correo')
     search_fields = ['nombre','username','correo','apellido']
     exclude = ('field_timestamp_c','field_timestamp_m','field_deleted')
+    def get_form(self, request, obj=None, **kwargs):
+        if not request.user.is_superuser:
+            self.exclude = ('field_timestamp_c','field_timestamp_m','field_deleted','adminuser')
+        form = super(UsuarioAdmin, self).get_form(request, obj, **kwargs)
+        return form
+    
     def save_model(self, request, obj, form, change):
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.field_inst_id=0
@@ -358,7 +368,7 @@ class UsuarioAdmin(admin.ModelAdmin):
 admin.site.register(Usuario,UsuarioAdmin)
 
 class CuentaPorCobrarAdmin(admin.ModelAdmin):
-    list_display = ('__unicode__','procesada','esta_vencida','fecha_vencimiento')
+    list_display = ('numero_documento','id_cliente','procesada','esta_vencida','fecha_vencimiento')
     search_fields = ['id_cliente__pc_nombre']
     list_filter = ['id_cliente__pc_nombre','fecha_vencimiento','cancelada','procesada']
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
@@ -377,7 +387,7 @@ class CuentaPorCobrarAdmin(admin.ModelAdmin):
         if request.user.is_superuser:
             return True
         return False
-    
+
     def save_model(self, request, obj, form, change):
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.field_inst_id=0
@@ -387,13 +397,22 @@ class CuentaPorCobrarAdmin(admin.ModelAdmin):
         #TODO: DONT HARDCODE GROUP
         obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
         obj.save()
+    def message_user(self, request, message, level=messages.INFO, extra_tags='',fail_silently=False):
+        message=re.sub(r'\bel\b', r'la', message)
+        super(CuentaPorCobrarAdmin, self).message_user( request, message, level, extra_tags,fail_silently)
+        return
     
 admin.site.register(CuentaPorCobrar,CuentaPorCobrarAdmin)
 
 class DepositoAdmin(admin.ModelAdmin):
-    list_display = ('numero','id_banco','monto','fecha')
+    list_display = ('numero','id_banco','format_monto','fecha')
     search_fields = ['numero']
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id','latitud','longitud')
+
+    def format_monto(self, obj):
+        return '{:,.2f}'.format(obj.monto).replace(".","%").replace(",",".").replace("%",",")
+    format_monto.short_description = 'Monto'
+    format_monto.admin_order_field = 'monto'
     def save_model(self, request, obj, form, change):
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.field_inst_id=0
@@ -407,16 +426,27 @@ class DepositoAdmin(admin.ModelAdmin):
 admin.site.register(Deposito,DepositoAdmin)
 
 
-
+class VisitaAdminForm(forms.ModelForm):
+    id_motivo_visita=forms.ModelChoiceField(queryset=Motivo.objects.filter(tipo=1),required=False,label='Motivo Visita')
+    id_motivo_no_visita=forms.ModelChoiceField(queryset=Motivo.objects.filter(tipo=2),required=False, label='Motivo No Visita')
+    id_motivo_no_cobranza=forms.ModelChoiceField(queryset=Motivo.objects.filter(tipo=3),required=False, label='Motivo No Cobranza')
+    id_motivo_no_pedido=forms.ModelChoiceField(queryset=Motivo.objects.filter(tipo=4),required=False, label='Motivo No Pedido')
+    class Meta:
+        model = Visita
+        
 class VisitaCreateAdmin(admin.ModelAdmin):
+    form=VisitaAdminForm
     list_display = ['id_cliente','format_fecha','visitado','comentario']    
     dateformat='%d %b %Y %H:%M'
     date_hierarchy='fecha'
-    list_filter = ['fecha','visitado']
+    list_filter = ['fecha','visitado','id_cliente']
     search_fields = ['id_cliente']    
-    fields=('fecha','id_cliente','comentario')
+    fields=('fecha','id_cliente','comentario','id_motivo_visita')
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id','hora_inicio','hora_fin')
-    form=VisitaAdminForm
+
+    class Media:
+        js = ("js/grappelli_custom_datepicker_template.js",)
+            
     def save_model(self, request, obj, form, change):
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.field_inst_id=0
@@ -437,14 +467,17 @@ admin.site.register(Visita,VisitaCreateAdmin)
         
         
 class VisitaRescheduleAdmin(admin.ModelAdmin):
-    list_display = ['id_cliente','visitado','comentario']    
+    list_display = ['id_cliente','visitado','comentario','fecha']    
     dateformat='%d %b %Y %H:%M'
     date_hierarchy='fecha'
-    list_filter = ['fecha','visitado']
+    list_filter = ['fecha','visitado','id_cliente']
     search_fields = ['id_cliente']    
-    fields=('fecha_reagenda',)
+    fields=('fecha','fecha_reagenda')
     form=VisitaAdminForm
-
+    readonly_fields=['fecha']
+    class Media:
+        js = ("js/grappelli_custom_datepicker_template.js",)
+            
     def has_add_permission(self, request):
         return False    
     
@@ -470,9 +503,10 @@ class VisitaCloseAdmin(admin.ModelAdmin):
     date_hierarchy='fecha'
     list_filter = ['fecha','visitado']
     search_fields = ['id_cliente']    
-    fields=('id_motivo_no_visita','id_motivo_no_cobranza','id_motivo_no_pedido','comentario','visitado')
+    fields=('id_motivo_no_visita','id_motivo_no_cobranza','id_motivo_no_pedido','visitado')
     form=VisitaAdminForm
-    
+    class Media:
+        js = ("js/grappelli_custom_datepicker_template.js","js/closeVisita.js")    
     def has_add_permission(self, request):
         return False    
 

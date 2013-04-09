@@ -7,7 +7,7 @@ ADMINS = (
     # ('Your Name', 'your_email@example.com'),
 )
 
-GRAPPELLI_ADMIN_TITLE='Ventas Plus Admin'
+GRAPPELLI_ADMIN_TITLE='Administrador de Ventas Plus'
 GRAPPELLI_INDEX_DASHBOARD = 'synergy_ventasplus_web_admin.dashboard.CustomIndexDashboard'
 
 MANAGERS = ADMINS
@@ -36,7 +36,7 @@ TIME_ZONE = 'America/Chicago'
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
-LANGUAGE_CODE = 'es-VE'
+LANGUAGE_CODE = 'es'
 
 SITE_ID = 1
 
@@ -47,12 +47,15 @@ USE_I18N = True
 # If you set this to False, Django will not format dates, numbers and
 # calendars according to the current locale.
 USE_L10N = True
+PROJECT_DIR = os.path.normpath(os.path.dirname(__file__))
+PROJECT_BASE_DIR= os.path.split(PROJECT_DIR)[0]
+
+LOCALE_PATHS = os.path.join(PROJECT_BASE_DIR, 'locale')
 
 # If you set this to False, Django will not use timezone-aware datetimes.
 USE_TZ = True
 
-PROJECT_DIR = os.path.normpath(os.path.dirname(__file__))
-PROJECT_BASE_DIR= os.path.split(PROJECT_DIR)[0]
+
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/var/www/example.com/media/"
 MEDIA_ROOT = ''
@@ -138,7 +141,8 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
-    'dbadmin'
+    'dbadmin',
+    'south',
 )
 
 # A sample logging configuration. The only tangible logging

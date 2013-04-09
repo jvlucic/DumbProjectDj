@@ -19,6 +19,7 @@
     <!-- EXTRASTYLES -->
 	{% block extrastyle %}
 		<style type="text/css">
+		
 			header#grp-header #grp-navigation {
 				background: #E1E1E1 url(/static/img/barra.png) top left repeat-x;
 				color: black;
@@ -26,27 +27,17 @@
 			
 			header#grp-header #grp-navigation ul#grp-user-tools {
 				margin: 0 -10px 0 0;
-				border-left: 1px solid #FFFFFF;
+				border-left: 1px solid #FFFFFF;				
 			}
 			/*CAJITA */
 			header#grp-header #grp-navigation ul#grp-user-tools {
+
 				border: none;
 			}
 			
 			#grp-user-tools {
-				border: none;
-			}
-			
-			header#grp-header #grp-navigation ul#grp-user-tools>li {
-				border: none;
-			}
-			
-			.grp-user-options-container {
-				border: none;
-			}
-			
-			.user-options-handler {
-				padding: 5px 10px 4px;
+				width:200px;
+				height:36px;
 				text-shadow: 0 1px 0 #f5f5f5;
 				border-bottom: 1px solid #ccc;
 				-moz-border-radius-topleft: 3px;
@@ -65,7 +56,24 @@
 				background-image: -webkit-linear-gradient(#e5e5e5, #dbdbdb);
 				background-image: -moz-linear-gradient(#e5e5e5, #dbdbdb);
 				background-image: -o-linear-gradient(#e5e5e5, #dbdbdb);
-				background-image: linear-gradient(#e5e5e5, #dbdbdb);
+				background-image: linear-gradient(#e5e5e5, #dbdbdb);	
+				border: none;
+			}
+			
+			header#grp-header #grp-navigation ul#grp-user-tools>li {
+				border: none;
+			}
+			
+			.grp-user-options-container {
+				border: none;
+			}
+			
+			.user-options-handler {
+
+						background: url('/static/grappelli/images/icons-s96d5c23000.png') no-repeat;
+				background-position: 100% -2602px;
+				
+
 			}
 			
 			.grp-user-options-container grp-collapse grp-open {
@@ -115,6 +123,26 @@
 			header#grp-header #grp-navigation ul li.grp-collapse.grp-open>ul {
 				border-top: 1px solid #ccc;
 			}
+			
+			
+			.dashboard .grp-module h3 {
+			    display: none;
+			}
+			
+			
+			/* Hide the app name from breadcrumb */
+			#grp-breadcrumbs li:nth-child(2) {
+			    display: none;
+			}
+			
+			/* Hide the extra separator, tricky */
+			#gr-breadcrumbs a:first-child {
+			    margin-right: -.65em;
+			    padding-top: 0;
+			    padding-bottom: 0;
+			    background: inherit;
+			    position: relative;
+			}			
 		</style>
 	{% endblock %}
     <!-- JAVASCRIPTS -->

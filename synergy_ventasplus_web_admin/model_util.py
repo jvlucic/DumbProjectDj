@@ -17,16 +17,15 @@ class UnixTimestampField(models.DateTimeField):
         # default for TIMESTAMP is NOT NULL unlike most fields, so we have to
         # cheat a little:
         self.blank, self.isnull = blank, null
-        self.null = True # To prevent the framework from shoving in "not null".
 
     def db_type(self, connection):
         typ=['TIMESTAMP']
         # See above!
         if self.isnull:
-            typ += ['NULL']
+            typ += ['NOT NULL']
             typ += ['default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP']            
         if self.auto_created:
-            typ += ['default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP']
+            typ += ['NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP']
         return ' '.join(typ)
 
     def get_db_prep_value(self, value, connection, prepared=False):
