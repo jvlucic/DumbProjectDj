@@ -12,7 +12,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.contrib.admin import forms
 from django import forms
 from django.contrib.admin.widgets import FilteredSelectMultiple
-from django.forms.models import ModelChoiceField
+from django.forms.models import ModelChoiceField, BaseInlineFormSet
 from django.core.urlresolvers import reverse
 import datetime
 from django.contrib.admin.templatetags.admin_list import date_hierarchy
@@ -27,6 +27,7 @@ from django.db.models.signals import post_save
 from django.contrib.comments.signals import comment_was_posted
 import re
 import locale
+from django.forms.widgets import Widget
 
 
 admin.site.unregister(Group)
@@ -55,22 +56,66 @@ class LogEntryAdmin(admin.ModelAdmin):
 
 admin.site.register(LogEntry,LogEntryAdmin)
 
-class ItemPedidoInline(admin.TabularInline):
+class RequiredInlineFormSet(BaseInlineFormSet):
+    """
+    Generates an inline formset that is required
+    """
+
+    def _construct_form(self, i, **kwargs):
+        """
+        Override the method to change the form attribute empty_permitted
+        """
+        form = super(RequiredInlineFormSet, self)._construct_form(i, **kwargs)
+        form.empty_permitted = False
+        return form
+
+class RequireOneFormSet(BaseInlineFormSet):
+    """Require at least one form in the formset to be completed."""
+    def clean(self):
+        """Check that at least one form has been completed."""
+        super(RequireOneFormSet, self).clean()
+        for error in self.errors:
+            if error:
+                return
+        completed = 0
+        for cleaned_data in self.cleaned_data:
+            # form has data and we aren't deleting it.
+            if ((cleaned_data['cantidad'] is None) or (not isinstance( cleaned_data['cantidad'], ( int, long ) ))):
+                raise forms.ValidationError("La cantidad de productos debe ser positiva")
+            
+            if cleaned_data and not cleaned_data.get('DELETE', False):
+                completed += 1
+
+        if completed < 1:
+            raise forms.ValidationError("Al menos un Producto es requerido.")
+
+class ItemPedidoInlinenForm(forms.ModelForm):
+    cantidad= forms.IntegerField(required=True ,min_value=1,initial=22)
+    class Meta:
+        model = Deposito
+
+class ItemPedidoInline(admin.StackedInline):
     model = ItemPedido
-    extra= 0
-    fields=['id_producto','cantidad',
-             'monto_total','monto_impuesto','flete','descuento','precio_unidad',
-             'porcentaje_impuesto','descuento_negativo'
-             ]
+    extra= 1
+    formset = RequireOneFormSet
+    classes = ('collapse open',)
+    inline_classes = ('collapse open',)
     readonly_fields =['id_producto','cantidad',
              'monto_total','monto_impuesto','flete','descuento','precio_unidad',
              'porcentaje_impuesto','descuento_negativo'
              ]
-    verbose_name='Productos Asociados'
+    verbose_name='Producto Asociado'
+    verbose_name_plural='Productos Asociados'
+    fieldsets = (
+        (None, {
+            'fields': ( 'id_producto','cantidad','precio_unidad','descuento','descuento_negativo','flete', 'porcentaje_impuesto', 'monto_impuesto','monto_total')
+        }),
+            
+    )
 
     def get_readonly_fields(self, request, obj=None):
         if request.user.is_superuser:
-            return []
+            return ['monto_total']
         return self.readonly_fields
 
     def has_add_permission(self, request):
@@ -83,6 +128,16 @@ class ItemPedidoInline(admin.TabularInline):
             return True
         return False
     
+    def save_model(self, request, obj, form, change):
+        obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
+        obj.field_inst_id=0
+        obj.field_permissions=0
+        obj.field_timestamp_c=int(time.time())
+        obj.field_timestamp_m=datetime.datetime.now()
+        #TODO: DONT HARDCODE GROUP
+        obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
+        obj.save()
+            
 class PedidoAdmin(admin.ModelAdmin):
     list_display = ('format_fecha','format_fecha_entrega','format_cliente','total','format_vendedor','tiene_comentario')
     #TODO: FIX DATE HIERARCHY
@@ -123,7 +178,7 @@ class PedidoAdmin(admin.ModelAdmin):
     format_fecha.admin_order_field = 'fecha'
 
     def format_fecha_entrega(self, obj):
-        if (obj.fecha):
+        if (obj.fecha_entrega):
             return obj.fecha_entrega.strftime(self.dateformat)
         else:
             return ''        
@@ -238,7 +293,7 @@ class ProductoCustomForm (forms.ModelForm):
     tipo = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=2),required=True,label='Tipo')
     linea = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=3),required=True,label='Linea')
     calidad = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=4),required=True,label='Calidad')
-    tamano = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=5),required=True,label='Tamano')
+    tamano = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=5),required=True,label=u'Tama\xF1o')
     color = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=6),required=True,label='Color')
 
     def __init__(self, *args, **kwargs):
@@ -290,7 +345,7 @@ class ProductoAdmin(admin.ModelAdmin):
     
     def tamano(self, obj):
         return DetalleProducto.objects.filter(id_producto=obj).get(level=5).descripcion_level 
-    tamano.short_description = 'Tama\xF1o'
+    tamano.short_description = u'Tama\xF1o'
 
     def color(self, obj):
         return DetalleProducto.objects.filter(id_producto=obj).get(level=6).descripcion_level 
@@ -367,6 +422,7 @@ class UsuarioAdmin(admin.ModelAdmin):
 
 admin.site.register(Usuario,UsuarioAdmin)
 
+        
 class CuentaPorCobrarAdmin(admin.ModelAdmin):
     list_display = ('numero_documento','id_cliente','procesada','esta_vencida','fecha_vencimiento')
     search_fields = ['id_cliente__pc_nombre']
@@ -404,11 +460,20 @@ class CuentaPorCobrarAdmin(admin.ModelAdmin):
     
 admin.site.register(CuentaPorCobrar,CuentaPorCobrarAdmin)
 
+class DepositoAdminForm(forms.ModelForm):
+    numero= forms.CharField(max_length=64L, label=u'N\xFAmero')
+    monto = forms.FloatField(required=True)
+    fecha=forms.DateField(required=True)
+    cuenta = forms.CharField(max_length=64L, required=True, widget=forms.TextInput(attrs={'size': 64L, 'class':'vTextField'}))
+
+    class Meta:
+        model = Deposito
+
 class DepositoAdmin(admin.ModelAdmin):
     list_display = ('numero','id_banco','format_monto','fecha')
     search_fields = ['numero']
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id','latitud','longitud')
-
+    form=DepositoAdminForm
     def format_monto(self, obj):
         return '{:,.2f}'.format(obj.monto).replace(".","%").replace(",",".").replace("%",",")
     format_monto.short_description = 'Monto'
@@ -431,6 +496,7 @@ class VisitaAdminForm(forms.ModelForm):
     id_motivo_no_visita=forms.ModelChoiceField(queryset=Motivo.objects.filter(tipo=2),required=False, label='Motivo No Visita')
     id_motivo_no_cobranza=forms.ModelChoiceField(queryset=Motivo.objects.filter(tipo=3),required=False, label='Motivo No Cobranza')
     id_motivo_no_pedido=forms.ModelChoiceField(queryset=Motivo.objects.filter(tipo=4),required=False, label='Motivo No Pedido')
+    fecha=forms.DateField(required=True)
     class Meta:
         model = Visita
         

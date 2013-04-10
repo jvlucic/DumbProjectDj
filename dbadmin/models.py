@@ -293,7 +293,16 @@ class ItemPedido(models.Model):
         db_table = 'ps_item_pedido'
     def __unicode__(self):
         return self.id_surrogate
-     
+    #TODO: Find a better way to save owner 
+    def save(self,*args,**kwargs):
+        self.field_owner_id = self.id_pedido.field_owner_id
+        self.field_group_id = self.id_pedido.field_group_id
+        self.field_inst_id = self.id_pedido.field_inst_id
+        self.field_permissions = self.id_pedido.field_permissions
+        self.field_timestamp_c = self.id_pedido.field_timestamp_c
+        self.field_timestamp_m = self.id_pedido.field_timestamp_m
+        self.field_deleted = self.id_pedido.field_deleted
+        super(ItemPedido,self).save(*args,**kwargs)     
 
 class MetodoPago(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')

@@ -19,6 +19,17 @@
     <!-- EXTRASTYLES -->
 	{% block extrastyle %}
 		<style type="text/css">
+			.vIntegerField{
+			
+				width: 50px;
+			}
+		
+			label.required{
+				font-weight:bold
+			}
+			label.required:after{ 
+				content:"*";
+			}
 		
 			header#grp-header #grp-navigation {
 				background: #E1E1E1 url(/static/img/barra.png) top left repeat-x;
