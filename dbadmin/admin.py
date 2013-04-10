@@ -28,6 +28,7 @@ from django.contrib.comments.signals import comment_was_posted
 import re
 import locale
 from django.forms.widgets import Widget
+from django.contrib.localflavor import no
 
 
 admin.site.unregister(Group)
@@ -145,7 +146,7 @@ class PedidoAdmin(admin.ModelAdmin):
     dateformat='%d %b %Y '
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
     list_filter=[('fecha', DateRangeFilter)]
-    fields=['fecha','id_cliente','fecha_entrega','id_metodo_pago','numero']
+    fields=['fecha','id_cliente','fecha_entrega','id_metodo_pago','numero','comentario']
     class Media:
         js = ("js/grappelli_custom_datepicker_template_dom_init.js",)
         
