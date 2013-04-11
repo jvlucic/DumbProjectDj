@@ -19,6 +19,14 @@
     <!-- EXTRASTYLES -->
 	{% block extrastyle %}
 		<style type="text/css">
+			/*Hides the add text at the end of the inlines*/
+			.grp-add-handler{
+				visibility: hidden;
+			}
+			.grp-tools li a.grp-add-handler{
+				visibility: visible;
+			}
+			
 			.vIntegerField{
 			
 				width: 50px;
@@ -153,7 +161,12 @@
 			    padding-bottom: 0;
 			    background: inherit;
 			    position: relative;
-			}			
+			}		
+				
+			.dbadmin-visita.grp-change-form > div > header > #grp-context-navigation > #grp-breadcrumbs li:nth-child(3) {
+				display: none;
+			}
+			
 		</style>
 	{% endblock %}
     <!-- JAVASCRIPTS -->

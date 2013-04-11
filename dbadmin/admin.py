@@ -9,7 +9,7 @@ from models import Pedido, Cliente, Usuario, ItemPedido, Producto, Unidad, Visit
 from django.http import HttpRequest
 from django.contrib.admin.models import LogEntry
 from django.utils.translation import ugettext_lazy as _
-from django.contrib.admin import forms
+from django.contrib.admin import forms, helpers
 from django import forms
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.forms.models import ModelChoiceField, BaseInlineFormSet
@@ -22,19 +22,24 @@ import time
 from dbadmin.models import Grupo, Motivo, VisitaReschedule, VisitaClose,\
     DetalleProducto, Categoria
 from dbadmin.filters import ProductTreeListFilter, DateRangeFilter
-from django.db import models
+from django.db import models, router
 from django.db.models.signals import post_save
 from django.contrib.comments.signals import comment_was_posted
 import re
 import locale
 from django.forms.widgets import Widget
 from django.contrib.localflavor import no
+from dbadmin.options import VentasPlusModelAdmin
+from django.utils.encoding import force_text
+from django.template.response import TemplateResponse
+from django.contrib.admin.util import model_ngettext, get_deleted_objects
+from django.core.exceptions import PermissionDenied
 
 
 admin.site.unregister(Group)
 admin.site.unregister(Site)
 #admin.site.unregister(User)
-
+    
 
 class LogEntryAdmin(admin.ModelAdmin):
     list_display = ('format_action_time','user', 'content_type', 'object_id','object_repr','tipo_accion')
@@ -81,7 +86,7 @@ class RequireOneFormSet(BaseInlineFormSet):
         completed = 0
         for cleaned_data in self.cleaned_data:
             # form has data and we aren't deleting it.
-            if ((cleaned_data['cantidad'] is None) or (not isinstance( cleaned_data['cantidad'], ( int, long ) ))):
+            if (not('cantidad' in cleaned_data) or ((cleaned_data['cantidad'] is None) or (not isinstance( cleaned_data['cantidad'], ( int, long ) )))):
                 raise forms.ValidationError("La cantidad de productos debe ser positiva")
             
             if cleaned_data and not cleaned_data.get('DELETE', False):
@@ -139,7 +144,7 @@ class ItemPedidoInline(admin.StackedInline):
         obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
         obj.save()
             
-class PedidoAdmin(admin.ModelAdmin):
+class PedidoAdmin(VentasPlusModelAdmin):
     list_display = ('format_fecha','format_fecha_entrega','format_cliente','total','format_vendedor','tiene_comentario')
     #TODO: FIX DATE HIERARCHY
     date_hierarchy = 'fecha'
@@ -147,6 +152,10 @@ class PedidoAdmin(admin.ModelAdmin):
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
     list_filter=[('fecha', DateRangeFilter)]
     fields=['fecha','id_cliente','fecha_entrega','id_metodo_pago','numero','comentario']
+    add_message="POLVITEM %(name)s "
+    add_another_message="POLVITEM %(name)s "
+    add_continue_message="POLVITEM %(name)s "
+    
     class Media:
         js = ("js/grappelli_custom_datepicker_template_dom_init.js",)
         
@@ -187,12 +196,7 @@ class PedidoAdmin(admin.ModelAdmin):
     format_fecha_entrega.admin_order_field = 'fecha_entrega'
     
     search_fields = ['id_cliente__pc_nombre']
-   # fieldsets = [
-   #     ('Encabezado',{'fields': ['fecha','id_cliente','fecha_entrega']}),
-   #     ('Datos Adicionales', {'fields': ['total'],
-    #                           'classes': ['collapse']
-#                               }),
- #   ]
+
     inlines = [
         ItemPedidoInline,
     ]
@@ -242,10 +246,40 @@ class PedidoAdmin(admin.ModelAdmin):
 
 admin.site.register(Pedido,PedidoAdmin)    
 
-class ClienteAdmin(admin.ModelAdmin):
+class ClienteAdminForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super(ClienteAdminForm, self).__init__(*args, **kwargs)
+        self.fields['pc_fecha_nacimiento'] = forms.DateField(widget=forms.DateInput(attrs={'size': 64L, 'class':'vDateField'}))
+        self.fields['pc_fecha_nacimiento'].required = False
+    class Meta:
+        model = Cliente
+
+class ClienteAdmin(VentasPlusModelAdmin):
     list_display = ('razon_social','pc_nombre','pc_telefono','identificacion')
     search_fields = ['pc_nombre']
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
+
+    add_continue_message=u'El %(name)s "%(obj)s" fue a\xF1adido satisfactoriamente'
+    add_another_message=u'El %(name)s "%(obj)s" fue a\xF1adido satisfactoriamente'
+    add_message=u'El %(name)s "%(obj)s" fue a\xF1adido satisfactoriamente'
+    
+    change_continue_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
+    change_saveasnew_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
+    change_another_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
+    change_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
+    classes = ('collapse ',)
+    form=ClienteAdminForm
+    fieldsets = (
+        (None, {
+            'fields': ( 'codigo','razon_social','identificacion','telefono1','telefono2','fax', 'correo', 'comentario','tipo','flete','descuento_maestro','descuento_otro1','descuento_otro2')
+        }),
+        ('Datos de la Persona de Contacto', {
+            'classes': ('collapse',),
+            'fields': ( 'pc_nombre','pc_telefono','pc_celular','pc_cargo', 'pc_correo_electronico', 'pc_fecha_nacimiento',)
+        }),
+            
+    )
+    
     def save_model(self, request, obj, form, change):
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.field_inst_id=0
@@ -290,9 +324,9 @@ class DetalleProductoInline(admin.TabularInline):
         return False
 
 class ProductoCustomForm (forms.ModelForm):
-    categoria = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=1),required=True,label='Categoria')
+    categoria = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=1),required=True,label=u'Categor\xEDa')
     tipo = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=2),required=True,label='Tipo')
-    linea = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=3),required=True,label='Linea')
+    linea = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=3),required=True,label=u'L\xEDnea')
     calidad = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=4),required=True,label='Calidad')
     tamano = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=5),required=True,label=u'Tama\xF1o')
     color = forms.ModelChoiceField(queryset=Categoria.objects.filter(level=6),required=True,label='Color')
@@ -308,7 +342,7 @@ class ProductoCustomForm (forms.ModelForm):
 
                         
             
-class ProductoAdmin(admin.ModelAdmin):
+class ProductoAdmin(VentasPlusModelAdmin):
     list_display = ('id_surrogate','itemno','categoria','tipo','linea','calidad','tamano','color','nombre','precio','cantidad')
     search_fields = ['nombre']
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
@@ -317,20 +351,29 @@ class ProductoAdmin(admin.ModelAdmin):
     form=ProductoCustomForm
     
     filterConfigData =  [
-                          {'title':_('Categoria'), 'parameter_name':'categoria', 'level':1},
-                          {'title':_('Tipo'), 'parameter_name':'tipo', 'level':2},
-                          {'title':_('Linea'), 'parameter_name':'linea', 'level':3},
-                          {'title':_('Calidad'), 'parameter_name':'calidad', 'level':4},
-                          {'title':_('Tamano'), 'parameter_name':'tamano', 'level':5},
-                          {'title':_('Color'), 'parameter_name':'color', 'level':6},                          
+                          {'title':_(u'Categor\xEDa'), 'parameter_name':'categoria', 'level':1},
+                          {'title':_(u'Tipo'), 'parameter_name':'tipo', 'level':2},
+                          {'title':_(u'L\xEDnea'), 'parameter_name':'linea', 'level':3},
+                          {'title':_(u'Calidad'), 'parameter_name':'calidad', 'level':4},
+                          {'title':_(u'Tama\xF1o'), 'parameter_name':'tamano', 'level':5},
+                          {'title':_(u'Color'), 'parameter_name':'color', 'level':6},                          
                         ]    
+    add_continue_message=u'El %(name)s "%(obj)s" fue agregado satisfactoriamente'
+    add_another_message=u'El %(name)s "%(obj)s" fue agregado satisfactoriamente'
+    add_message=u'El %(name)s "%(obj)s" fue agregado satisfactoriamente'
+    
+    change_continue_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
+    change_saveasnew_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
+    change_another_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
+    change_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
+        
     def get_form(self, request, obj=None, **kwargs):
         
         return super(ProductoAdmin, self).get_form(request, obj=None, **kwargs)
     
     def categoria(self, obj):
         return DetalleProducto.objects.filter(id_producto=obj).get(level=1).descripcion_level 
-    categoria.short_description = 'Categoria'
+    categoria.short_description = 'Categor\xEDa'
     
     def tipo(self, obj):
         return DetalleProducto.objects.filter(id_producto=obj).get(level=2).descripcion_level 
@@ -338,7 +381,7 @@ class ProductoAdmin(admin.ModelAdmin):
     
     def linea(self, obj):
         return DetalleProducto.objects.filter(id_producto=obj).get(level=3).descripcion_level 
-    linea.short_description = 'Linea'
+    linea.short_description = 'LxEDnea'
     
     def calidad(self, obj):
         return DetalleProducto.objects.filter(id_producto=obj).get(level=4).descripcion_level 
@@ -354,6 +397,8 @@ class ProductoAdmin(admin.ModelAdmin):
 
         
     def save_model(self, request, obj, form, change):
+
+        
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.field_inst_id=0
         obj.field_permissions=0
@@ -362,6 +407,8 @@ class ProductoAdmin(admin.ModelAdmin):
         #TODO: DONT HARDCODE GROUP
         obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
         obj.save()
+        self.change_msg_dict={'name': force_text(obj._meta.verbose_name),'obj':force_text(obj.id_surrogate)}
+        self.msg_dict={'name': force_text(obj._meta.verbose_name),'obj':force_text(obj.id_surrogate)}        
         producto=obj
         categoria_list=[form.cleaned_data['categoria'],
                         form.cleaned_data['tipo'],
@@ -401,10 +448,19 @@ admin.site.register(Producto,ProductoAdmin)
 
 
 
-class UsuarioAdmin(admin.ModelAdmin):
+class UsuarioAdmin(VentasPlusModelAdmin):
     list_display = ('username','nombre','apellido','correo')
     search_fields = ['nombre','username','correo','apellido']
     exclude = ('field_timestamp_c','field_timestamp_m','field_deleted')
+    add_continue_message=u'El %(name)s %(code)s-%(obj)s fue agregado satisfactoriamente'
+    add_another_message=u'El %(name)s %(code)s-%(obj)s fue agregado satisfactoriamente'
+    add_message=u'El %(name)s %(code)s-%(obj)s fue agregado satisfactoriamente'
+    
+    change_continue_message=u'El %(name)s %(code)s-%(obj)s fue modificado satisfactoriamente'
+    change_saveasnew_message=u'El %(name)s %(code)s-%(obj)s fue modificado satisfactoriamente'
+    change_another_message=u'El %(name)s %(code)s-%(obj)s fue modificado satisfactoriamente'
+    change_message=u'El %(name)s %(code)s-%(obj)s fue modificado satisfactoriamente'    
+    
     def get_form(self, request, obj=None, **kwargs):
         if not request.user.is_superuser:
             self.exclude = ('field_timestamp_c','field_timestamp_m','field_deleted','adminuser')
@@ -412,6 +468,9 @@ class UsuarioAdmin(admin.ModelAdmin):
         return form
     
     def save_model(self, request, obj, form, change):
+        self.change_msg_dict={'name': force_text(obj._meta.verbose_name),'code':force_text(obj.codigo),'obj':force_text(obj)}
+        self.msg_dict={'name': force_text(obj._meta.verbose_name),'code':force_text(obj.codigo),'obj':force_text(obj)}
+        
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.field_inst_id=0
         obj.field_permissions=0
@@ -423,13 +482,26 @@ class UsuarioAdmin(admin.ModelAdmin):
 
 admin.site.register(Usuario,UsuarioAdmin)
 
+class CuentaPorCobrarAdminForm(VentasPlusModelAdmin):
+    numero = forms.CharField(required=True,label=u'N\xFAmero')        
         
-class CuentaPorCobrarAdmin(admin.ModelAdmin):
+class CuentaPorCobrarAdmin(VentasPlusModelAdmin):
     list_display = ('numero_documento','id_cliente','procesada','esta_vencida','fecha_vencimiento')
     search_fields = ['id_cliente__pc_nombre']
     list_filter = ['id_cliente__pc_nombre','fecha_vencimiento','cancelada','procesada']
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
     readonly_fields =['numero_documento', 'monto_original','saldo_actual','fecha_documento','fecha_despacho','fecha_vencimiento','fecha_entrega','procesada','cancelada','id_cliente','id_cobranza']
+    
+    
+    add_continue_message=u'La %(name)s %(idC)s asociada al cliente "%(obj)s" fue agregada satisfactoriamente'
+    add_another_message=u'La %(name)s %(idC)s asociada al cliente "%(obj)s" fue agregada satisfactoriamente'
+    add_message=u'La %(name)s %(idC)s asociada al cliente "%(obj)s" fue agregada satisfactoriamente'
+    
+    change_continue_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
+    change_saveasnew_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
+    change_another_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
+    change_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
+
     def get_readonly_fields(self, request, obj=None):
         if request.user.is_superuser:
             return []
@@ -446,6 +518,9 @@ class CuentaPorCobrarAdmin(admin.ModelAdmin):
         return False
 
     def save_model(self, request, obj, form, change):
+        self.msg_dict={'name': force_text(obj._meta.verbose_name),'idC':force_text(obj.numero_documento),'obj':force_text(obj.id_cliente)}
+        self.change_msg_dict={'name': force_text(obj._meta.verbose_name),'idC':force_text(obj.numero_documento),'obj':force_text(obj.id_cliente)}
+        
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.field_inst_id=0
         obj.field_permissions=0
@@ -454,27 +529,34 @@ class CuentaPorCobrarAdmin(admin.ModelAdmin):
         #TODO: DONT HARDCODE GROUP
         obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
         obj.save()
-    def message_user(self, request, message, level=messages.INFO, extra_tags='',fail_silently=False):
-        message=re.sub(r'\bel\b', r'la', message)
-        super(CuentaPorCobrarAdmin, self).message_user( request, message, level, extra_tags,fail_silently)
-        return
     
 admin.site.register(CuentaPorCobrar,CuentaPorCobrarAdmin)
 
 class DepositoAdminForm(forms.ModelForm):
     numero= forms.CharField(max_length=64L, label=u'N\xFAmero')
     monto = forms.FloatField(required=True)
-    fecha=forms.DateField(required=True)
     cuenta = forms.CharField(max_length=64L, required=True, widget=forms.TextInput(attrs={'size': 64L, 'class':'vTextField'}))
-
+    def __init__(self, *args, **kwargs):
+        super(DepositoAdminForm, self).__init__(*args, **kwargs)
+        self.fields['fecha'].required = True
     class Meta:
         model = Deposito
 
-class DepositoAdmin(admin.ModelAdmin):
+class DepositoAdmin(VentasPlusModelAdmin):
     list_display = ('numero','id_banco','format_monto','fecha')
     search_fields = ['numero']
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id','latitud','longitud')
     form=DepositoAdminForm
+    
+    add_continue_message=u'El %(name)s "%(obj)s" fue agregado satisfactoriamente'
+    add_another_message=u'El %(name)s "%(obj)s" fue agregado satisfactoriamente'
+    add_message=u'El %(name)s "%(obj)s" fue agregado satisfactoriamente'
+    
+    change_continue_message=u'El %(name)s "%(obj)s" fue modificado satisfactoriamente'
+    change_saveasnew_message=u'El %(name)s "%(obj)s" fue modificado satisfactoriamente'
+    change_another_message=u'El %(name)s "%(obj)s" fue modificado satisfactoriamente'
+    change_message=u'El %(name)s "%(obj)s" fue modificado satisfactoriamente'
+    
     def format_monto(self, obj):
         return '{:,.2f}'.format(obj.monto).replace(".","%").replace(",",".").replace("%",",")
     format_monto.short_description = 'Monto'
@@ -497,15 +579,16 @@ class VisitaAdminForm(forms.ModelForm):
     id_motivo_no_visita=forms.ModelChoiceField(queryset=Motivo.objects.filter(tipo=2),required=False, label='Motivo No Visita')
     id_motivo_no_cobranza=forms.ModelChoiceField(queryset=Motivo.objects.filter(tipo=3),required=False, label='Motivo No Cobranza')
     id_motivo_no_pedido=forms.ModelChoiceField(queryset=Motivo.objects.filter(tipo=4),required=False, label='Motivo No Pedido')
-    fecha=forms.DateField(required=True)
+    def __init__(self, *args, **kwargs):
+        super(VisitaAdminForm, self).__init__(*args, **kwargs)
+        self.fields['fecha'].required = True
     class Meta:
         model = Visita
         
-class VisitaCreateAdmin(admin.ModelAdmin):
+class VisitaCreateAdmin(VentasPlusModelAdmin):
     form=VisitaAdminForm
     list_display = ['id_cliente','format_fecha','visitado','comentario']    
     dateformat='%d %b %Y %H:%M'
-    date_hierarchy='fecha'
     list_filter = ['fecha','visitado','id_cliente']
     search_fields = ['id_cliente']    
     fields=('fecha','id_cliente','comentario','id_motivo_visita')
@@ -527,16 +610,16 @@ class VisitaCreateAdmin(admin.ModelAdmin):
     def format_fecha(self, obj):
         return obj.fecha.strftime(self.dateformat)
     format_fecha.short_description = _('Fecha')
-    
+    format_fecha.admin_order_field = 'fecha'
+
 admin.site.register(Visita,VisitaCreateAdmin)
 
 
         
         
-class VisitaRescheduleAdmin(admin.ModelAdmin):
+class VisitaRescheduleAdmin(VentasPlusModelAdmin):
     list_display = ['id_cliente','visitado','comentario','fecha']    
     dateformat='%d %b %Y %H:%M'
-    date_hierarchy='fecha'
     list_filter = ['fecha','visitado','id_cliente']
     search_fields = ['id_cliente']    
     fields=('fecha','fecha_reagenda')
@@ -564,10 +647,9 @@ admin.site.register(VisitaReschedule,VisitaRescheduleAdmin)
 
         
         
-class VisitaCloseAdmin(admin.ModelAdmin):
+class VisitaCloseAdmin(VentasPlusModelAdmin):
     list_display = ['id_cliente','visitado','comentario']    
     dateformat='%d %b %Y %H:%M'
-    date_hierarchy='fecha'
     list_filter = ['fecha','visitado']
     search_fields = ['id_cliente']    
     fields=('id_motivo_no_visita','id_motivo_no_cobranza','id_motivo_no_pedido','visitado')
@@ -589,3 +671,4 @@ class VisitaCloseAdmin(admin.ModelAdmin):
 
     
 admin.site.register(VisitaClose,VisitaCloseAdmin)
+

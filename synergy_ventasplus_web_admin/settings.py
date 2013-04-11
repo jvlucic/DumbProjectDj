@@ -12,6 +12,8 @@ GRAPPELLI_INDEX_DASHBOARD = 'synergy_ventasplus_web_admin.dashboard.CustomIndexD
 
 MANAGERS = ADMINS
 
+LOGIN_REDIRECT_URL='/admin/'
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.

@@ -187,8 +187,8 @@ class Deposito(models.Model):
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_deposito'
-        verbose_name=u'Dep\xF3sito'
-        verbose_name_plural=u'Dep\xF3sito'
+        verbose_name=u'dep\xF3sito'
+        verbose_name_plural=u'dep\xF3sitos'
         
     def __unicode__(self):
         return self.numero
@@ -214,7 +214,10 @@ class DetalleProducto(models.Model):
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_detalle_producto'
+    def __unicode__(self):
+        return {1: u'categor\xEDa',2: u'tipo',3: u'l\xEDnea',4: u'calidad',5: u'tama\xF1o',6: u'color',}.get(self.level, None)+" "+self.descripcion_level
 
+    
 class Direccion(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
     nombre = models.CharField(max_length=64L, blank=True)
@@ -422,8 +425,8 @@ class DahlBookManager(models.Manager):
         
 class Producto(models.Model):
     objects = DahlBookManager()
-    id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
-    itemno = models.CharField(max_length=64L, db_column='itemNo', blank=True) # Field name made lowercase.
+    id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id',verbose_name=u'N\xFAmero')
+    itemno = models.CharField(max_length=64L, db_column='itemNo', blank=True,verbose_name=u'N\xFAmero de item') # Field name made lowercase.
     nombre = models.CharField(max_length=64L, blank=True)
     precio = models.FloatField(null=True, blank=True)
     cantidad = models.IntegerField(null=True, blank=True)
@@ -489,16 +492,16 @@ class Visita(models.Model):
 class VisitaClose(Visita):
     class Meta:
         proxy=True
-        verbose_name='Cerrar Visitas'
-        verbose_name_plural='Cerrar Visitas'
+        verbose_name='Modificar Visitas'
+        verbose_name_plural='Modificar Visitas'
     def __unicode__(self):
         return str(self.id_cliente)+' Fecha: '+str(self.fecha)+" CERRADA"        
         
 class VisitaReschedule(Visita):
     class Meta:
         proxy=True
-        verbose_name='Reagendar Visitas'
-        verbose_name_plural='Reagendar Visitas'        
+        verbose_name='Modificar Visitas'
+        verbose_name_plural='Modificar Visitas'        
     def __unicode__(self):
         return str(self.id_cliente)+' Fecha: '+str(self.fecha)+" REAGENDADA"        
 
@@ -552,7 +555,7 @@ class Usuario(models.Model):
     field_timestamp_c = models.PositiveIntegerField(max_length=22, db_column='_timestamp_c',null=False, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
     field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
-    adminuser = models.OneToOneField(User, null=True, blank=True)
+    adminuser = models.OneToOneField(User, null=True, blank=True, verbose_name=u'Usuario Administrador')
     class Meta:
         db_table = 'usuario'
     def __unicode__(self):

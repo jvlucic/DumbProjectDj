@@ -69,14 +69,13 @@ class ProductTreeListFilter(SimpleListFilter):
     parameter_name = 'categoria'
     level=0
     basefilterConfigData =  [
-                              {'title':_('Categoria'), 'parameter_name':'categoria', 'level':1},
-                              {'title':_('Tipo'), 'parameter_name':'tipo', 'level':2},
-                              {'title':_('Linea'), 'parameter_name':'linea', 'level':3},
-                              {'title':_('Calidad'), 'parameter_name':'calidad', 'level':4},
-                              {'title':_('Tamano'), 'parameter_name':'tamano', 'level':5},
-                              {'title':_('Color'), 'parameter_name':'color', 'level':6},                          
-                            ]
-    
+                          {'title':_(u'Categor\xEDa'), 'parameter_name':'categoria', 'level':1},
+                          {'title':_(u'Tipo'), 'parameter_name':'tipo', 'level':2},
+                          {'title':_(u'L\xEDnea'), 'parameter_name':'linea', 'level':3},
+                          {'title':_(u'Calidad'), 'parameter_name':'calidad', 'level':4},
+                          {'title':_(u'Tama\xF1o'), 'parameter_name':'tamano', 'level':5},
+                          {'title':_(u'Color'), 'parameter_name':'color', 'level':6},                          
+                        ]    
                 
     def config(self,configData):
         self.title=configData['title']
