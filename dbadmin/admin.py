@@ -43,7 +43,7 @@ admin.site.unregister(Site)
 
 class LogEntryAdmin(admin.ModelAdmin):
     list_display = ('format_action_time','user', 'content_type', 'object_id','object_repr','tipo_accion')
-    dateformat='%d %b %Y %H:%M'
+    dateformat='%d/%m/%Y '
     def format_action_time(self, obj):
         return obj.action_time.strftime(self.dateformat)
     format_action_time.short_description = _('Fecha Accion')
@@ -87,7 +87,7 @@ class RequireOneFormSet(BaseInlineFormSet):
         for cleaned_data in self.cleaned_data:
             # form has data and we aren't deleting it.
             if (not('cantidad' in cleaned_data) or ((cleaned_data['cantidad'] is None) or (not isinstance( cleaned_data['cantidad'], ( int, long ) )))):
-                raise forms.ValidationError("La cantidad de productos debe ser positiva")
+                raise forms.ValidationError("Debe agregar al menos un producto")
             
             if cleaned_data and not cleaned_data.get('DELETE', False):
                 completed += 1
@@ -148,7 +148,7 @@ class PedidoAdmin(VentasPlusModelAdmin):
     list_display = ('format_fecha','format_fecha_entrega','format_cliente','total','format_vendedor','tiene_comentario')
     #TODO: FIX DATE HIERARCHY
     date_hierarchy = 'fecha'
-    dateformat='%d %b %Y '
+    dateformat='%d/%m/%Y '
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
     list_filter=[('fecha', DateRangeFilter)]
     fields=['fecha','id_cliente','fecha_entrega','id_metodo_pago','numero','comentario','total']
@@ -594,14 +594,14 @@ class VisitaAdminForm(forms.ModelForm):
 class VisitaCreateAdmin(VentasPlusModelAdmin):
     form=VisitaAdminForm
     list_display = ['id_cliente','format_fecha','visitado','comentario']    
-    dateformat='%d %b %Y %H:%M'
-    list_filter = ['fecha','visitado','id_cliente']
+    dateformat='%d/%m/%Y '
+    list_filter=[('fecha', DateRangeFilter),'id_cliente']
     search_fields = ['id_cliente']    
     fields=('fecha','id_cliente','comentario','id_motivo_visita')
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id','hora_inicio','hora_fin')
 
     class Media:
-        js = ("js/grappelli_custom_datepicker_template.js",)
+        js = ("js/grappelli_custom_datepicker_template.js","js/grappelli_custom_datepicker_template_dom_init.js")
             
     def save_model(self, request, obj, form, change):
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
@@ -625,7 +625,7 @@ admin.site.register(Visita,VisitaCreateAdmin)
         
 class VisitaRescheduleAdmin(VentasPlusModelAdmin):
     list_display = ['id_cliente','visitado','comentario','fecha']    
-    dateformat='%d %b %Y %H:%M'
+    dateformat='%d/%m/%Y '
     list_filter = ['fecha','visitado','id_cliente']
     search_fields = ['id_cliente']    
     fields=('fecha','fecha_reagenda')
@@ -655,7 +655,7 @@ admin.site.register(VisitaReschedule,VisitaRescheduleAdmin)
         
 class VisitaCloseAdmin(VentasPlusModelAdmin):
     list_display = ['id_cliente','visitado','comentario']    
-    dateformat='%d %b %Y %H:%M'
+    dateformat='%d/%m/%Y '
     list_filter = ['fecha','visitado']
     search_fields = ['id_cliente']    
     fields=('id_motivo_no_visita','id_motivo_no_cobranza','id_motivo_no_pedido','visitado')

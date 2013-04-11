@@ -78,12 +78,12 @@ class Cliente(models.Model):
     descuento_maestro = models.FloatField(null=True, blank=True)
     descuento_otro1 = models.FloatField(null=True, blank=True)
     descuento_otro2 = models.FloatField(null=True, blank=True)
-    pc_nombre = models.CharField(max_length=64L, blank=True , verbose_name=u'Persona de Contacto')
-    pc_telefono = models.CharField(max_length=16L, blank=True, verbose_name=u'Tel\xE9fono Persona de Contacto')
-    pc_celular = models.CharField(max_length=16L, blank=True, verbose_name=u'Celular Persona de Contacto')
-    pc_cargo = models.CharField(max_length=64L, blank=True, verbose_name=u'Cargo Persona de Contacto')
-    pc_correo_electronico = models.CharField(max_length=128L, blank=True, verbose_name=u'Email Persona de Contacto')
-    pc_fecha_nacimiento = models.CharField(max_length=10L, blank=True, verbose_name=u'Fecha Nac. Persona de Contacto')
+    pc_nombre = models.CharField(max_length=64L, blank=True , verbose_name=u'Nombre')
+    pc_telefono = models.CharField(max_length=16L, blank=True, verbose_name=u'Tel\xE9fono')
+    pc_celular = models.CharField(max_length=16L, blank=True, verbose_name=u'Celular')
+    pc_cargo = models.CharField(max_length=64L, blank=True, verbose_name=u'Cargo')
+    pc_correo_electronico = models.CharField(max_length=128L, blank=True, verbose_name=u'Email')
+    pc_fecha_nacimiento = models.CharField(max_length=10L, blank=True, verbose_name=u'Fecha de Nacimiento')
     id_lista_precio = models.CharField(max_length=16L, blank=True, verbose_name=u'Lista de precio')
     #FIXME: CHANGED TO FK
     #id_zona = models.IntegerField(null=True, blank=True)
@@ -216,7 +216,7 @@ class DetalleProducto(models.Model):
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_detalle_producto'
     def __unicode__(self):
-        return {1: u'categor\xEDa',2: u'tipo',3: u'l\xEDnea',4: u'calidad',5: u'tama\xF1o',6: u'color',}.get(self.level, None)+" "+self.descripcion_level
+        return {1: u'Categor\xEDa',2: u'Tipo',3: u'L\xEDnea',4: u'Calidad',5: u'Tama\xF1o',6: u'Color',}.get(self.level, None)+" "+self.descripcion_level
 
     
 class Direccion(models.Model):

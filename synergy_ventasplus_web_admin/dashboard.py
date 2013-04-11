@@ -39,6 +39,11 @@ class CustomIndexDashboard(Dashboard):
             column=1,
             children=[
                 {
+                    'title': _('Ver Visitas'),
+                    'url': '/admin/dbadmin/visita/',
+                    'external': False,
+                },                      
+                {
                     'title': _('Agendar Visitas'),
                     'url': '/admin/dbadmin/visita/add/',
                     'external': False,
