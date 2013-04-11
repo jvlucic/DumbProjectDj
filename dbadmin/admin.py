@@ -151,7 +151,7 @@ class PedidoAdmin(VentasPlusModelAdmin):
     dateformat='%d %b %Y '
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
     list_filter=[('fecha', DateRangeFilter)]
-    fields=['fecha','id_cliente','fecha_entrega','id_metodo_pago','numero','comentario']
+    fields=['fecha','id_cliente','fecha_entrega','id_metodo_pago','numero','comentario','total']
     add_message="POLVITEM %(name)s "
     add_another_message="POLVITEM %(name)s "
     add_continue_message="POLVITEM %(name)s "
