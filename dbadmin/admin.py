@@ -271,7 +271,7 @@ class ClienteAdmin(VentasPlusModelAdmin):
     form=ClienteAdminForm
     fieldsets = (
         (None, {
-            'fields': ( 'codigo','razon_social','identificacion','telefono1','telefono2','fax', 'correo', 'comentario','tipo','flete','descuento_maestro','descuento_otro1','descuento_otro2')
+            'fields': ( 'codigo','razon_social','identificacion','telefono1','telefono2','fax', 'correo', 'comentario','tipo','flete','descuento_maestro','descuento_otro1','descuento_otro2','id_zona')
         }),
         ('Datos de la Persona de Contacto', {
             'classes': ('collapse',),
@@ -558,7 +558,7 @@ class DepositoAdmin(VentasPlusModelAdmin):
     change_message=u'El %(name)s "%(obj)s" fue modificado satisfactoriamente'
     
     def format_monto(self, obj):
-        return '{:,.2f}'.format(obj.monto).replace(".","%").replace(",",".").replace("%",",")
+        return '{:,.2f}'.format(obj.monto).replace(".","%").replace(",",".").replace("%",",")+" Bs." 
     format_monto.short_description = 'Monto'
     format_monto.admin_order_field = 'monto'
     def save_model(self, request, obj, form, change):
