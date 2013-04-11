@@ -344,7 +344,7 @@ class Motivo(models.Model):
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_motivo'
     def __unicode__(self):
-        return str(self.nombre)
+        return unicode(str(self.nombre))
 
 class Pago(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')

@@ -152,9 +152,15 @@ class PedidoAdmin(VentasPlusModelAdmin):
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
     list_filter=[('fecha', DateRangeFilter)]
     fields=['fecha','id_cliente','fecha_entrega','id_metodo_pago','numero','comentario','total']
-    add_message="POLVITEM %(name)s "
-    add_another_message="POLVITEM %(name)s "
-    add_continue_message="POLVITEM %(name)s "
+    
+    add_continue_message=u'El %(name)s "%(obj)s" fue a\xF1adido satisfactoriamente'
+    add_another_message=u'El %(name)s "%(obj)s" fue a\xF1adido satisfactoriamente'
+    add_message=u'El %(name)s "%(obj)s" fue a\xF1adido satisfactoriamente'
+    
+    change_continue_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
+    change_saveasnew_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
+    change_another_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
+    change_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
     
     class Media:
         js = ("js/grappelli_custom_datepicker_template_dom_init.js",)
