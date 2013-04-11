@@ -255,7 +255,7 @@ admin.site.register(Pedido,PedidoAdmin)
 class ClienteAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(ClienteAdminForm, self).__init__(*args, **kwargs)
-        self.fields['pc_fecha_nacimiento'] = forms.DateField(widget=forms.DateInput(attrs={'size': 64L, 'class':'vDateField'}))
+        self.fields['pc_fecha_nacimiento'] = forms.DateField(label="Fecha de nacimiento",widget=forms.DateInput(attrs={'size': 64L, 'class':'vDateField'}))
         self.fields['pc_fecha_nacimiento'].required = False
     class Meta:
         model = Cliente
