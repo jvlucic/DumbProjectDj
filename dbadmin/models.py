@@ -18,6 +18,7 @@ from django.db.models.signals import post_save
 from django.contrib import messages
 from django.db.models import signals
 
+from django.utils.encoding import smart_unicode
 
 class Grupo(models.Model):
     nombre = models.CharField(max_length=64L, primary_key=True)
@@ -344,7 +345,7 @@ class Motivo(models.Model):
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_motivo'
     def __unicode__(self):
-        return unicode(str(self.nombre), 'utf-8')
+        return smart_unicode(self.nombre)
 
 class Pago(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
