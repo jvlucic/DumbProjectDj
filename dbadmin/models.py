@@ -146,7 +146,7 @@ class CuentaPorCobrar(models.Model):
     id_cliente = models.ForeignKey('Cliente', db_column='id_cliente',verbose_name="Cliente")   
     #FIXME: CHANGED TO FK
     #id_cobranza = models.IntegerField(null=True, blank=True)
-    id_cobranza = models.ForeignKey('Cobranza', db_column='id_cobranza',verbose_name="Cobranza")   
+    id_cobranza = models.ForeignKey('Cobranza', db_column='id_cobranza',null=True, blank=True,verbose_name="Cobranza",default=None)   
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id') # Field renamed because it started with '_'.
     field_inst_id  = models.CharField(max_length=255, db_column='_inst_id', default=0)
     field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=False) # Field renamed because it started with '_'.
@@ -263,7 +263,9 @@ class Item(models.Model):
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_item'
-
+    def __unicode__(self):
+        return str(self.id_producto)
+    
 class ItemPedido(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
     cantidad = models.IntegerField(null=True, blank=True)
