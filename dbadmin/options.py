@@ -93,6 +93,7 @@ custom_delete_selected.short_description = _("Eliminar")
 
 class VentasPlusModelAdmin(ModelAdmin):
 
+    dateformat='%d/%m/%Y '
     add_continue_message='The %(name)s "%(obj)s" was added successfully. You may edit it again below.'
     add_another_message='The %(name)s "%(obj)s" was added successfully. You may add another %(name)s below.'
     add_message='The %(name)s "%(obj)s" was added successfully.'
@@ -110,6 +111,21 @@ class VentasPlusModelAdmin(ModelAdmin):
     
     actions = [custom_delete_selected]
     
+    def get_formsets(self, request, obj=None):
+        for inline in self.get_inline_instances(request, obj):
+            fs = inline.get_formset(request, obj)
+            if obj:
+                fs.extra = 0            
+            yield fs
+    
+# Override empty label    
+    def get_form(self, request, obj=None, **kwargs):
+        form=super(VentasPlusModelAdmin, self).get_form(request)
+        for name,field in form.base_fields.iteritems():
+            if hasattr(field, 'empty_label'):
+                    field.empty_label = "Seleccione"
+        return form
+            
     def get_actions(self, request):
         actions = super(VentasPlusModelAdmin, self).get_actions(request)
         del actions['delete_selected']

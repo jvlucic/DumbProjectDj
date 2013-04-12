@@ -7,6 +7,11 @@ ADMINS = (
     # ('Your Name', 'your_email@example.com'),
 )
 
+DATE_FORMAT='d/m/Y '
+SHORT_DATE_FORMAT='d/m/Y '
+SHORT_DATETIME_FORMAT='d/m/Y '
+DATETIME_FORMAT='d/m/Y '
+
 GRAPPELLI_ADMIN_TITLE='Administrador de Ventas Plus'
 GRAPPELLI_INDEX_DASHBOARD = 'synergy_ventasplus_web_admin.dashboard.CustomIndexDashboard'
 

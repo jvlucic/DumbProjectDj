@@ -256,7 +256,7 @@ class ClienteAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(ClienteAdminForm, self).__init__(*args, **kwargs)
         self.fields['pc_fecha_nacimiento'] = forms.DateField(label="Fecha de nacimiento",widget=forms.DateInput(attrs={'size': 64L, 'class':'vDateField'}))
-        self.fields['pc_fecha_nacimiento'].required = False
+        self.fields['pc_fecha_nacimiento'].required = True
     class Meta:
         model = Cliente
 
@@ -492,7 +492,8 @@ class CuentaPorCobrarAdminForm(VentasPlusModelAdmin):
     numero = forms.CharField(required=True,label=u'N\xFAmero')        
         
 class CuentaPorCobrarAdmin(VentasPlusModelAdmin):
-    list_display = ('numero_documento','id_cliente','procesada','esta_vencida','fecha_vencimiento')
+    dateformat='%d/%m/%Y '
+    list_display = ('numero_documento','id_cliente','procesada','esta_vencida','format_fecha_vencimiento')
     search_fields = ['id_cliente__pc_nombre']
     list_filter = ['id_cliente__pc_nombre','fecha_vencimiento','cancelada','procesada']
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
@@ -508,6 +509,12 @@ class CuentaPorCobrarAdmin(VentasPlusModelAdmin):
     change_another_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
     change_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
 
+    def format_fecha_vencimiento(self, obj):
+        if (obj.fecha_vencimiento):
+            return obj.fecha_vencimiento.strftime(self.dateformat)
+    format_fecha_vencimiento.short_description = _('Fecha Vencimiento')
+    format_fecha_vencimiento.admin_order_field = 'fecha_vencimiento'    
+    
     def get_readonly_fields(self, request, obj=None):
         if request.user.is_superuser:
             return []

@@ -19,6 +19,7 @@ from django.contrib import messages
 from django.db.models import signals
 
 from django.utils.encoding import smart_unicode
+dateformat='%d/%m/%Y '
 
 class Grupo(models.Model):
     nombre = models.CharField(max_length=64L, primary_key=True)
@@ -489,15 +490,14 @@ class Visita(models.Model):
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_visita'
     def __unicode__(self):
-        return str(self.id_cliente)+' Fecha: '+str(self.fecha)
-        
+        return str(self.id_cliente)+' Fecha: '+str(self.fecha.strftime(dateformat))
 class VisitaClose(Visita):
     class Meta:
         proxy=True
         verbose_name='Modificar Visitas'
         verbose_name_plural='Modificar Visitas'
     def __unicode__(self):
-        return str(self.id_cliente)+' Fecha: '+str(self.fecha)+" CERRADA"        
+        return str(self.id_cliente)+' Fecha: '+str(self.fecha.strftime(dateformat))+" CERRADA"        
         
 class VisitaReschedule(Visita):
     class Meta:
@@ -505,7 +505,7 @@ class VisitaReschedule(Visita):
         verbose_name='Modificar Visitas'
         verbose_name_plural='Modificar Visitas'        
     def __unicode__(self):
-        return str(self.id_cliente)+' Fecha: '+str(self.fecha)+" REAGENDADA"        
+        return str(self.id_cliente)+' Fecha: '+str(self.fecha.strftime(dateformat))+" REAGENDADA"        
 
 
 class Zona(models.Model):
