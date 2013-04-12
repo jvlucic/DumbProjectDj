@@ -84,16 +84,17 @@ class RequireOneFormSet(BaseInlineFormSet):
             if error:
                 return
         completed = 0
-        for cleaned_data in self.cleaned_data:
-            # form has data and we aren't deleting it.
-            if (not('cantidad' in cleaned_data) or ((cleaned_data['cantidad'] is None) or (not isinstance( cleaned_data['cantidad'], ( int, long ) )))):
-                raise forms.ValidationError("Debe agregar al menos un producto")
-            
-            if cleaned_data and not cleaned_data.get('DELETE', False):
-                completed += 1
-
-        if completed < 1:
-            raise forms.ValidationError("Al menos un Producto es requerido.")
+        if self.form.base_fields:
+            for cleaned_data in self.cleaned_data:
+                # form has data and we aren't deleting it.
+                if (not('cantidad' in cleaned_data) or ((cleaned_data['cantidad'] is None) or (not isinstance( cleaned_data['cantidad'], ( int, long ) )))):
+                    raise forms.ValidationError("Debe agregar al menos un producto")
+                
+                if cleaned_data and not cleaned_data.get('DELETE', False):
+                    completed += 1
+    
+            if completed < 1:
+                raise forms.ValidationError("Al menos un Producto es requerido.")
 
 class ItemPedidoInlinenForm(forms.ModelForm):
     cantidad= forms.IntegerField(required=True ,min_value=1,initial=22)
@@ -207,7 +208,7 @@ class PedidoAdmin(VentasPlusModelAdmin):
         ItemPedidoInline,
     ]
 
-    readonly_fields =['fecha', 'fecha_entrega','id_cliente','field_owner_id','total']
+    readonly_fields =['fecha', 'fecha_entrega','id_cliente','field_owner_id','total','numero','comentario','id_metodo_pago']
 
     def get_readonly_fields(self, request, obj=None):
         if request.user.is_superuser:
