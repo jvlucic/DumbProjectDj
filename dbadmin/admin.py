@@ -606,11 +606,21 @@ class VisitaCreateAdmin(VentasPlusModelAdmin):
     search_fields = ['id_cliente']    
     fields=('fecha','id_cliente','comentario','id_motivo_visita')
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id','hora_inicio','hora_fin')
-
+    add_continue_message=u'La %(name)s %(idC)s asociada al cliente "%(obj)s" fue agregada satisfactoriamente'
+    add_another_message=u'La %(name)s %(idC)s asociada al cliente "%(obj)s" fue agregada satisfactoriamente'
+    add_message=u'La %(name)s %(idC)s asociada al cliente "%(obj)s" fue agregada satisfactoriamente'
+    
+    change_continue_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
+    change_saveasnew_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
+    change_another_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
+    change_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
     class Media:
         js = ("js/grappelli_custom_datepicker_template.js","js/grappelli_custom_datepicker_template_dom_init.js")
             
     def save_model(self, request, obj, form, change):
+        self.msg_dict={'name': force_text(obj._meta.verbose_name),'idC':force_text(obj.fecha.strftime(self.dateformat)),'obj':force_text(obj.id_cliente)}
+        self.change_msg_dict={'name': force_text(obj._meta.verbose_name),'idC':force_text(obj.fecha.strftime(self.dateformat)),'obj':force_text(obj.id_cliente)}
+        
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.field_inst_id=0
         obj.field_permissions=0

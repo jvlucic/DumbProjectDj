@@ -494,16 +494,16 @@ class Visita(models.Model):
 class VisitaClose(Visita):
     class Meta:
         proxy=True
-        verbose_name='Modificar Visitas'
-        verbose_name_plural='Modificar Visitas'
+        verbose_name='Cerrar Visitas'
+        verbose_name_plural='Cerrar Visitas'
     def __unicode__(self):
         return str(self.id_cliente)+' Fecha: '+str(self.fecha.strftime(dateformat))+" CERRADA"        
         
 class VisitaReschedule(Visita):
     class Meta:
         proxy=True
-        verbose_name='Modificar Visitas'
-        verbose_name_plural='Modificar Visitas'        
+        verbose_name='Reagendar Visitas'
+        verbose_name_plural='Reagendar Visitas'        
     def __unicode__(self):
         return str(self.id_cliente)+' Fecha: '+str(self.fecha.strftime(dateformat))+" REAGENDADA"        
 
