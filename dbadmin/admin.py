@@ -34,6 +34,9 @@ from django.utils.encoding import force_text
 from django.template.response import TemplateResponse
 from django.contrib.admin.util import model_ngettext, get_deleted_objects
 from django.core.exceptions import PermissionDenied
+from django.contrib.admin.filters import RelatedFieldListFilter,\
+    AllValuesFieldListFilter
+from django.contrib.admin.views.main import ChangeList
 
 
 admin.site.unregister(Group)
@@ -491,12 +494,18 @@ admin.site.register(Usuario,UsuarioAdmin)
 
 class CuentaPorCobrarAdminForm(VentasPlusModelAdmin):
     numero = forms.CharField(required=True,label=u'N\xFAmero')        
-        
+
+
+class ClienteListFilter(AllValuesFieldListFilter):
+    def __init__(self, field, request, params, model, model_admin, field_path):
+        super(ClienteListFilter, self).__init__( field, request, params, model, model_admin, field_path)
+        self.title="Cliente"
+    
 class CuentaPorCobrarAdmin(VentasPlusModelAdmin):
     dateformat='%d/%m/%Y '
-    list_display = ('numero_documento','id_cliente','procesada','esta_vencida','format_fecha_vencimiento')
+    list_display = ('numero_documento','id_cliente','procesada','esta_vencida','format_fecha_vencimiento','cancelada')
     search_fields = ['id_cliente__pc_nombre']
-    list_filter = ['id_cliente__pc_nombre','fecha_vencimiento','cancelada','procesada']
+    list_filter = [("id_cliente__razon_social",ClienteListFilter),'procesada','fecha_vencimiento','cancelada']
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
     readonly_fields =['numero_documento', 'monto_original','saldo_actual','fecha_documento','fecha_despacho','fecha_vencimiento','fecha_entrega','procesada','cancelada','id_cliente','id_cobranza']
     
@@ -510,6 +519,7 @@ class CuentaPorCobrarAdmin(VentasPlusModelAdmin):
     change_another_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
     change_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
 
+    
     def format_fecha_vencimiento(self, obj):
         if (obj.fecha_vencimiento):
             return obj.fecha_vencimiento.strftime(self.dateformat)
@@ -595,7 +605,7 @@ class VisitaAdminForm(forms.ModelForm):
     id_motivo_no_pedido=forms.ModelChoiceField(queryset=Motivo.objects.filter(tipo=4),required=False, label='Motivo No Pedido')
     def __init__(self, *args, **kwargs):
         super(VisitaAdminForm, self).__init__(*args, **kwargs)
-        self.fields['fecha'].required = True
+     
     class Meta:
         model = Visita
         

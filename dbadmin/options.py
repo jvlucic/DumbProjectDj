@@ -123,7 +123,7 @@ class VentasPlusModelAdmin(ModelAdmin):
         form=super(VentasPlusModelAdmin, self).get_form(request)
         for name,field in form.base_fields.iteritems():
             if hasattr(field, 'empty_label'):
-                    field.empty_label = "Seleccione"
+                    field.empty_label = u"Seleccione una opci\xF3n"
         return form
             
     def get_actions(self, request):
