@@ -129,15 +129,15 @@ class Cobranza(models.Model):
         db_table = 'ps_cobranza'
     def __unicode__(self):
         return self.numero_recibo+" ("+self.concepto+")"
-    
+
 class CuentaPorCobrar(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
     numero_documento = models.CharField(max_length=64L, blank=False,verbose_name="N\xFAmero")
-    monto_original = models.FloatField(null=True, blank=True)
-    saldo_actual = models.FloatField(null=True, blank=True)
-    fecha_documento = models.DateField(null=True, blank=True)
+    monto_original = models.FloatField(null=False, blank=False)
+    saldo_actual = models.FloatField(null=False, blank=False)
+    fecha_documento = models.DateField(null=False, blank=False)
     fecha_despacho = models.DateField(null=True, blank=True)
-    fecha_vencimiento = models.DateField(null=True, blank=True)
+    fecha_vencimiento = models.DateField(null=False, blank=False)
     fecha_entrega = models.DateField(null=True, blank=True)
     procesada = models.NullBooleanField(null=True, blank=True)
     cancelada = models.NullBooleanField(null=True, blank=True)
