@@ -43,7 +43,7 @@
             </div>
         {% else %}
             <div class="grp-group">
-                <h2>{% blocktrans %}¿¿Est&aacute; usted seguro que desea eliminar el(los) usuario(s) seleccionado(s)?{% endblocktrans %}</h2>
+                <h2>{% blocktrans %}¿Est&aacute; usted seguro que desea eliminar el(los) usuario(s) seleccionado(s)?{% endblocktrans %}</h2>
                 {% for deleteable_object in deletable_objects %}
                     <ul class="grp-nested-list">{{ deleteable_object|unordered_list }}</ul>
                 {% endfor %}
