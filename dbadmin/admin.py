@@ -220,7 +220,7 @@ class PedidoAdmin(VentasPlusModelAdmin):
 
     def has_add_permission(self, request):
         if request.user.is_superuser:
-            return True
+            return False
         return False
 
     def has_delete_permission(self, request, obj=None):
