@@ -383,7 +383,7 @@ class ProductoAdmin(VentasPlusModelAdmin):
     
     def categoria(self, obj):
         return DetalleProducto.objects.filter(id_producto=obj).get(level=1).descripcion_level 
-    categoria.short_description = 'Categor\xEDa'
+    categoria.short_description = u'Categor\xEDa'
     
     def tipo(self, obj):
         return DetalleProducto.objects.filter(id_producto=obj).get(level=2).descripcion_level 
@@ -391,7 +391,7 @@ class ProductoAdmin(VentasPlusModelAdmin):
     
     def linea(self, obj):
         return DetalleProducto.objects.filter(id_producto=obj).get(level=3).descripcion_level 
-    linea.short_description = 'LxEDnea'
+    linea.short_description = u'L\xEDnea'
     
     def calidad(self, obj):
         return DetalleProducto.objects.filter(id_producto=obj).get(level=4).descripcion_level 
