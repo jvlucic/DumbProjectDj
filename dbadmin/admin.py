@@ -567,11 +567,11 @@ class DepositoAdminForm(forms.ModelForm):
         model = Deposito
 
 class DepositoAdmin(VentasPlusModelAdmin):
-    list_display = ('numero','id_banco','format_monto','fecha')
+    list_display = ('numero','id_banco','format_monto','format_fecha')
     search_fields = ['numero']
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id','latitud','longitud')
     form=DepositoAdminForm
-    
+    dateformat='%d/%m/%Y '    
     add_continue_message=u'El %(name)s "%(obj)s" fue agregado satisfactoriamente'
     add_another_message=u'El %(name)s "%(obj)s" fue agregado satisfactoriamente'
     add_message=u'El %(name)s "%(obj)s" fue agregado satisfactoriamente'
@@ -581,6 +581,12 @@ class DepositoAdmin(VentasPlusModelAdmin):
     change_another_message=u'El %(name)s "%(obj)s" fue modificado satisfactoriamente'
     change_message=u'El %(name)s "%(obj)s" fue modificado satisfactoriamente'
     
+    def format_fecha(self, obj):
+        if (obj.fecha):
+            return obj.fecha.strftime(self.dateformat)
+    format_fecha.short_description = _('Fecha')
+    format_fecha.admin_order_field = 'fecha'    
+        
     def format_monto(self, obj):
         return '{:,.2f}'.format(obj.monto).replace(".","%").replace(",",".").replace("%",",")+" Bs." 
     format_monto.short_description = 'Monto'

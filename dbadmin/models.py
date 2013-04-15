@@ -378,6 +378,8 @@ class Pago(models.Model):
     class Meta:
         unique_together = ('field_owner_id', 'field_timestamp_c')
         db_table = 'ps_pago'
+    def __unicode__(self):
+        return '#'+smart_unicode(self.id_surrogate)        
 
 class Pedido(models.Model):
     id_surrogate = models.AutoField(primary_key=True,db_column='_surrogate_id')
