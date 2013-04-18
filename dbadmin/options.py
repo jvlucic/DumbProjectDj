@@ -13,7 +13,7 @@ from django.utils.translation import ugettext as _
 from django.contrib.admin import helpers
 from django.db import transaction, router
 from django.contrib.admin.util import unquote, get_deleted_objects,\
-    model_ngettext
+    model_ngettext, flatten_fieldsets
 from django.core.exceptions import PermissionDenied
 from django.template.response import TemplateResponse
 
@@ -109,7 +109,37 @@ class VentasPlusModelAdmin(ModelAdmin):
     change_msg_dict=None
     delete_msg_dict=None
     
-    actions = [custom_delete_selected]
+    #actions = [custom_delete_selected]
+    actions = []
+    
+    def get_readonly_fields(self, request, obj=None):
+#        if request.user.is_superuser:
+#            return self.readonly_fields
+        if self.exclude:
+            excludeList=list(self.exclude)
+        else:
+            excludeList=['field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id']
+
+        if self.declared_fieldsets:
+            fields=flatten_fieldsets(self.declared_fieldsets)
+        else:
+            fields=list(set(
+                [field.name for field in self.opts.local_fields] +
+                [field.name for field in self.opts.local_many_to_many]
+            ))
+
+        return list(set(fields) ^ set(excludeList))
+            
+    def has_add_permission(self, request):
+        if request.user.is_superuser:
+            return False
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        if request.user.is_superuser:
+            return False
+        return False
+        
     
     def get_formsets(self, request, obj=None):
         for inline in self.get_inline_instances(request, obj):
@@ -357,4 +387,23 @@ class VentasPlusModelAdmin(ModelAdmin):
             "admin/%s/delete_confirmation.html" % app_label,
             "admin/delete_confirmation.html"
         ], context, current_app=self.admin_site.name)
+
+class VisitaVentasPlusModelAdmin(VentasPlusModelAdmin):
+    actions = [custom_delete_selected]
+    
+    def get_form(self, request, obj=None, **kwargs):
+        form=super(VentasPlusModelAdmin, self).get_form(request)
+        return form
         
+    def get_readonly_fields(self, request, obj=None):
+        return self.readonly_fields
+                    
+    def has_add_permission(self, request):
+        if request.user.is_superuser:
+            return True
+        return True
+
+    def has_delete_permission(self, request, obj=None):
+        if request.user.is_superuser:
+            return True
+        return True

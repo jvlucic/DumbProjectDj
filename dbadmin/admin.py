@@ -29,7 +29,7 @@ import re
 import locale
 from django.forms.widgets import Widget
 from django.contrib.localflavor import no
-from dbadmin.options import VentasPlusModelAdmin
+from dbadmin.options import VentasPlusModelAdmin, VisitaVentasPlusModelAdmin
 from django.utils.encoding import force_text
 from django.template.response import TemplateResponse
 from django.contrib.admin.util import model_ngettext, get_deleted_objects
@@ -225,7 +225,7 @@ class PedidoAdmin(VentasPlusModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         if request.user.is_superuser:
-            return True
+            return False
         return False
 
     def changelist_view(self, request,  extra_context=None):
@@ -357,7 +357,7 @@ class ProductoAdmin(VentasPlusModelAdmin):
     search_fields = ['nombre']
     exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
     list_filter=[ProductTreeListFilter ,ProductTreeListFilter,ProductTreeListFilter,ProductTreeListFilter,ProductTreeListFilter,ProductTreeListFilter]
-
+    fields=['itemno','nombre','precio','cantidad','categoria','tipo','linea','calidad','tamano','color']
     form=ProductoCustomForm
     
     filterConfigData =  [
@@ -376,9 +376,12 @@ class ProductoAdmin(VentasPlusModelAdmin):
     change_saveasnew_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
     change_another_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
     change_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields=super(ProductoAdmin, self).get_readonly_fields(request)
+        return list(readonly_fields)+['categoria','tipo','linea','calidad','tamano','color']
         
     def get_form(self, request, obj=None, **kwargs):
-        
         return super(ProductoAdmin, self).get_form(request, obj=None, **kwargs)
     
     def categoria(self, obj):
@@ -562,7 +565,8 @@ class DepositoAdminForm(forms.ModelForm):
     cuenta = forms.CharField(max_length=64L, required=True, widget=forms.TextInput(attrs={'size': 64L, 'class':'vTextField'}))
     def __init__(self, *args, **kwargs):
         super(DepositoAdminForm, self).__init__(*args, **kwargs)
-        self.fields['fecha'].required = True
+        if ('fecha' in self.fields):
+            self.fields['fecha'].required = True
     class Meta:
         model = Deposito
 
@@ -615,7 +619,7 @@ class VisitaAdminForm(forms.ModelForm):
     class Meta:
         model = Visita
         
-class VisitaCreateAdmin(VentasPlusModelAdmin):
+class VisitaCreateAdmin(VisitaVentasPlusModelAdmin):
     form=VisitaAdminForm
     list_display = ['id_cliente','format_fecha','visitado','comentario']    
     dateformat='%d/%m/%Y '
@@ -657,7 +661,7 @@ admin.site.register(Visita,VisitaCreateAdmin)
 
         
         
-class VisitaRescheduleAdmin(VentasPlusModelAdmin):
+class VisitaRescheduleAdmin(VisitaVentasPlusModelAdmin):
     list_display = ['id_cliente','visitado','comentario','fecha']    
     dateformat='%d/%m/%Y '
     list_filter = ['fecha','visitado','id_cliente']
@@ -687,7 +691,7 @@ admin.site.register(VisitaReschedule,VisitaRescheduleAdmin)
 
         
         
-class VisitaCloseAdmin(VentasPlusModelAdmin):
+class VisitaCloseAdmin(VisitaVentasPlusModelAdmin):
     list_display = ['id_cliente','visitado','comentario']    
     dateformat='%d/%m/%Y '
     list_filter = ['fecha','visitado']
