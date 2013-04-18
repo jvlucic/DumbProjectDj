@@ -536,12 +536,12 @@ class CuentaPorCobrarAdmin(VentasPlusModelAdmin):
 
     def has_add_permission(self, request):
         if request.user.is_superuser:
-            return True
+            return False
         return False
 
     def has_delete_permission(self, request, obj=None):
         if request.user.is_superuser:
-            return True
+            return False
         return False
 
     def save_model(self, request, obj, form, change):
