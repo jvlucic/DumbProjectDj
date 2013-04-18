@@ -57,8 +57,10 @@ USE_L10N = True
 PROJECT_DIR = os.path.normpath(os.path.dirname(__file__))
 PROJECT_BASE_DIR= os.path.split(PROJECT_DIR)[0]
 
-LOCALE_PATHS = os.path.join(PROJECT_BASE_DIR, 'locale')
-
+LOCALE_PATHS = (
+    os.path.join(PROJECT_BASE_DIR, 'locale'),
+)
+print LOCALE_PATHS
 # If you set this to False, Django will not use timezone-aware datetimes.
 USE_TZ = True
 
@@ -119,6 +121,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )

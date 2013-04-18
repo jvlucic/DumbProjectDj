@@ -391,9 +391,6 @@ class VentasPlusModelAdmin(ModelAdmin):
 class VisitaVentasPlusModelAdmin(VentasPlusModelAdmin):
     actions = [custom_delete_selected]
     
-    def get_form(self, request, obj=None, **kwargs):
-        form=super(VentasPlusModelAdmin, self).get_form(request)
-        return form
         
     def get_readonly_fields(self, request, obj=None):
         return self.readonly_fields

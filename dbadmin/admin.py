@@ -124,8 +124,6 @@ class ItemPedidoInline(admin.StackedInline):
     )
 
     def get_readonly_fields(self, request, obj=None):
-        if request.user.is_superuser:
-            return ['monto_total']
         return self.readonly_fields
 
     def has_add_permission(self, request):
@@ -213,10 +211,7 @@ class PedidoAdmin(VentasPlusModelAdmin):
 
     readonly_fields =['fecha', 'fecha_entrega','id_cliente','field_owner_id','total','numero','comentario','id_metodo_pago']
 
-    def get_readonly_fields(self, request, obj=None):
-        if request.user.is_superuser:
-            return ['total']
-        return self.readonly_fields
+
 
     def has_add_permission(self, request):
         if request.user.is_superuser:
@@ -529,10 +524,7 @@ class CuentaPorCobrarAdmin(VentasPlusModelAdmin):
     format_fecha_vencimiento.short_description = _('Fecha Vencimiento')
     format_fecha_vencimiento.admin_order_field = 'fecha_vencimiento'    
     
-    def get_readonly_fields(self, request, obj=None):
-        if request.user.is_superuser:
-            return []
-        return self.readonly_fields
+
 
     def has_add_permission(self, request):
         if request.user.is_superuser:

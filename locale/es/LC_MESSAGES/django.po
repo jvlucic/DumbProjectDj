@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-04-09 14:48-0430\n"
+"POT-Creation-Date: 2013-04-18 12:20-0430\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,60 +18,104 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: dbadmin/admin.py:37
+msgid "Change %s"
+msgstr "Detalle %s"
+
+#: dbadmin/admin.py:52
 msgid "Fecha Accion"
 msgstr ""
 
-#: dbadmin/admin.py:41
+#: dbadmin/admin.py:56
 msgid "Creacion"
 msgstr ""
 
-#: dbadmin/admin.py:43
+#: dbadmin/admin.py:58
 msgid "Modificacion"
 msgstr ""
 
-#: dbadmin/admin.py:45
+#: dbadmin/admin.py:60
 msgid "Eliminacion"
 msgstr ""
 
-#: dbadmin/admin.py:47
+#: dbadmin/admin.py:62
 msgid "Tipo de Accion"
 msgstr ""
 
-#: dbadmin/admin.py:258 dbadmin/filters.py:69 dbadmin/filters.py:73
-msgid "Categoria"
-msgstr ""
+#: dbadmin/admin.py:359 dbadmin/filters.py:72
+msgid "Categoría"
+msgstr "Basura"
 
-#: dbadmin/admin.py:259 dbadmin/filters.py:74
+#: dbadmin/admin.py:360 dbadmin/filters.py:73
 msgid "Tipo"
 msgstr ""
 
-#: dbadmin/admin.py:260 dbadmin/filters.py:75
-msgid "Linea"
+#: dbadmin/admin.py:361 dbadmin/filters.py:74
+msgid "Línea"
 msgstr ""
 
-#: dbadmin/admin.py:261 dbadmin/filters.py:76
+#: dbadmin/admin.py:362 dbadmin/filters.py:75
 msgid "Calidad"
 msgstr ""
 
-#: dbadmin/admin.py:262 dbadmin/filters.py:77
-msgid "Tamano"
+#: dbadmin/admin.py:363 dbadmin/filters.py:76
+msgid "Tamaño"
 msgstr ""
 
-#: dbadmin/admin.py:263 dbadmin/filters.py:78
+#: dbadmin/admin.py:364 dbadmin/filters.py:77
 msgid "Color"
 msgstr ""
 
-#: dbadmin/admin.py:440
+#: dbadmin/admin.py:524
+msgid "Fecha Vencimiento"
+msgstr ""
+
+#: dbadmin/admin.py:583 dbadmin/admin.py:648
 msgid "Fecha"
 msgstr ""
 
 #: dbadmin/filters.py:26
-msgid "From brbrbrb"
+msgid "Desde"
 msgstr ""
 
-#: dbadmin/filters.py:28
-msgid "To date"
+#: dbadmin/filters.py:27
+msgid "Hasta"
+msgstr ""
+
+#: dbadmin/filters.py:68
+msgid "Categoria"
+msgstr ""
+
+#: dbadmin/options.py:56
+#, python-format
+msgid "Fue(ron) eliminado(s) %(count)d %(items)s(s) satisfactoriamente."
+msgstr ""
+
+#: dbadmin/options.py:68 dbadmin/options.py:369
+#, python-format
+msgid "Cannot delete %(name)s"
+msgstr ""
+
+#: dbadmin/options.py:70 dbadmin/options.py:371
+msgid "Are you sure?"
+msgstr ""
+
+#: dbadmin/options.py:92
+msgid "Eliminar"
+msgstr ""
+
+#: dbadmin/options.py:300
+msgid ""
+"Items must be selected in order to perform actions on them. No items have "
+"been changed."
+msgstr ""
+
+#: dbadmin/options.py:319
+msgid "No action selected."
+msgstr ""
+
+#: dbadmin/options.py:341
+#, python-format
+msgid "%(name)s object with primary key %(key)r does not exist."
 msgstr ""
 
 #: synergy_ventasplus_web_admin/dashboard.py:20
@@ -89,21 +133,25 @@ msgid "Visitas"
 msgstr ""
 
 #: synergy_ventasplus_web_admin/dashboard.py:42
+msgid "Ver Visitas"
+msgstr ""
+
+#: synergy_ventasplus_web_admin/dashboard.py:47
 #: synergy_ventasplus_web_admin/dashboardBackup.py:59
 msgid "Agendar Visitas"
 msgstr ""
 
-#: synergy_ventasplus_web_admin/dashboard.py:47
+#: synergy_ventasplus_web_admin/dashboard.py:52
 #: synergy_ventasplus_web_admin/dashboardBackup.py:64
 msgid "Reagendar Visitas"
 msgstr ""
 
-#: synergy_ventasplus_web_admin/dashboard.py:52
+#: synergy_ventasplus_web_admin/dashboard.py:57
 #: synergy_ventasplus_web_admin/dashboardBackup.py:69
 msgid "Cerrar Visitas"
 msgstr ""
 
-#: synergy_ventasplus_web_admin/dashboard.py:64
+#: synergy_ventasplus_web_admin/dashboard.py:69
 #: synergy_ventasplus_web_admin/dashboardBackup.py:132
 #: templates/admin/index[nocustomdashboard].html:64
 #: templates/admino/index.html:57
@@ -158,10 +206,168 @@ msgstr ""
 msgid "Latest Django News"
 msgstr ""
 
-#: templates/admin/base.html:201 templates/admin/index.html:25
+#: templates/admin/actions.html:17
+msgid "Click here to select the objects across all pages"
+msgstr ""
+
+#: templates/admin/actions.html:17
+#, python-format
+msgid "Select all %(total_count)s %(module_name)s"
+msgstr ""
+
+#: templates/admin/actions.html:18
+msgid "Clear selection"
+msgstr ""
+
+#: templates/admin/base.html:271 templates/admin/change_list.html:130
+#: templates/admin/delete_confirmation.html:14
+#: templates/admin/delete_selected_confirmation.html:14
+#: templates/admin/index.html:25
 #: templates/admin/index[nocustomdashboard].html:18
+#: templates/admin/dbadmin/cliente/delete_selected_confirmation.html:14
+#: templates/admin/dbadmin/cuentaporcobrar/delete_selected_confirmation.html:14
+#: templates/admin/dbadmin/deposito/delete_selected_confirmation.html:14
+#: templates/admin/dbadmin/producto/delete_selected_confirmation.html:15
+#: templates/admin/dbadmin/usuario/delete_selected_confirmation.html:15
+#: templates/admin/dbadmin/visita/delete_selected_confirmation.html:14
+#: templates/admin/dbadmin/visitaclose/delete_selected_confirmation.html:14
+#: templates/admin/dbadmin/visitareschedule/delete_selected_confirmation.html:15
 #: templates/admino/base.html:82
+#: templates/registration/password_change_form.html:20
 msgid "Home"
+msgstr ""
+
+#: templates/admin/change_list.html:147
+#, python-format
+msgid "Add %(name)s"
+msgstr ""
+
+#: templates/admin/change_list.html:177
+msgid "Filter"
+msgstr ""
+
+#: templates/admin/change_list.html:212 templates/admin/login.html:33
+#: templates/admino/login.html:17 templates/registration/logged_out.html:35
+msgid "Please correct the error below."
+msgid_plural "Please correct the errors below."
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/admin/change_list.html:239
+msgid "Save"
+msgstr ""
+
+#: templates/admin/delete_confirmation.html:18
+#: templates/admin/submit_line.html:6
+msgid "Delete"
+msgstr ""
+
+#: templates/admin/delete_confirmation.html:28
+#, python-format
+msgid ""
+"Deleting the %(object_name)s '%(escaped_object)s' would result in deleting "
+"related objects, but your account doesn't have permission to delete the "
+"following types of objects:"
+msgstr ""
+
+#: templates/admin/delete_confirmation.html:36
+#, python-format
+msgid ""
+"Deleting the %(object_name)s '%(escaped_object)s' would require deleting the "
+"following protected related objects:"
+msgstr ""
+
+#: templates/admin/delete_confirmation.html:46
+#, python-format
+msgid ""
+"Are you sure you want to delete the %(object_name)s \"%(escaped_object)s\"? "
+"All of the following related items will be deleted:"
+msgstr ""
+
+#: templates/admin/delete_confirmation.html:52
+#: templates/admin/delete_selected_confirmation.html:58
+#: templates/admin/dbadmin/cliente/delete_selected_confirmation.html:58
+#: templates/admin/dbadmin/cuentaporcobrar/delete_selected_confirmation.html:59
+#: templates/admin/dbadmin/deposito/delete_selected_confirmation.html:63
+#: templates/admin/dbadmin/pedido/delete_selected_confirmation.html:50
+#: templates/admin/dbadmin/producto/delete_selected_confirmation.html:71
+#: templates/admin/dbadmin/usuario/delete_selected_confirmation.html:59
+#: templates/admin/dbadmin/visita/delete_selected_confirmation.html:58
+#: templates/admin/dbadmin/visitaclose/delete_selected_confirmation.html:58
+#: templates/admin/dbadmin/visitareschedule/delete_selected_confirmation.html:59
+msgid "No"
+msgstr ""
+
+#: templates/admin/delete_confirmation.html:53
+#: templates/admin/delete_selected_confirmation.html:59
+#: templates/admin/dbadmin/cliente/delete_selected_confirmation.html:59
+#: templates/admin/dbadmin/cuentaporcobrar/delete_selected_confirmation.html:60
+#: templates/admin/dbadmin/deposito/delete_selected_confirmation.html:64
+#: templates/admin/dbadmin/pedido/delete_selected_confirmation.html:51
+#: templates/admin/dbadmin/producto/delete_selected_confirmation.html:72
+#: templates/admin/dbadmin/usuario/delete_selected_confirmation.html:60
+#: templates/admin/dbadmin/visita/delete_selected_confirmation.html:59
+#: templates/admin/dbadmin/visitaclose/delete_selected_confirmation.html:59
+#: templates/admin/dbadmin/visitareschedule/delete_selected_confirmation.html:60
+msgid "S&iacute;"
+msgstr ""
+
+#: templates/admin/delete_selected_confirmation.html:17
+#: templates/admin/dbadmin/cliente/delete_selected_confirmation.html:17
+#: templates/admin/dbadmin/cuentaporcobrar/delete_selected_confirmation.html:17
+#: templates/admin/dbadmin/deposito/delete_selected_confirmation.html:17
+#: templates/admin/dbadmin/producto/delete_selected_confirmation.html:18
+#: templates/admin/dbadmin/usuario/delete_selected_confirmation.html:18
+#: templates/admin/dbadmin/visita/delete_selected_confirmation.html:17
+#: templates/admin/dbadmin/visitaclose/delete_selected_confirmation.html:17
+#: templates/admin/dbadmin/visitareschedule/delete_selected_confirmation.html:18
+msgid "Delete multiple objects"
+msgstr ""
+
+#: templates/admin/delete_selected_confirmation.html:27
+#: templates/admin/dbadmin/cliente/delete_selected_confirmation.html:27
+#: templates/admin/dbadmin/cuentaporcobrar/delete_selected_confirmation.html:27
+#: templates/admin/dbadmin/deposito/delete_selected_confirmation.html:27
+#: templates/admin/dbadmin/pedido/delete_selected_confirmation.html:13
+#: templates/admin/dbadmin/producto/delete_selected_confirmation.html:28
+#: templates/admin/dbadmin/usuario/delete_selected_confirmation.html:28
+#: templates/admin/dbadmin/visita/delete_selected_confirmation.html:27
+#: templates/admin/dbadmin/visitaclose/delete_selected_confirmation.html:27
+#: templates/admin/dbadmin/visitareschedule/delete_selected_confirmation.html:28
+#, python-format
+msgid ""
+"Deleting the selected %(objects_name)s would result in deleting related "
+"objects, but your account doesn't have permission to delete the following "
+"types of objects:"
+msgstr ""
+
+#: templates/admin/delete_selected_confirmation.html:35
+#: templates/admin/dbadmin/cliente/delete_selected_confirmation.html:35
+#: templates/admin/dbadmin/cuentaporcobrar/delete_selected_confirmation.html:35
+#: templates/admin/dbadmin/deposito/delete_selected_confirmation.html:35
+#: templates/admin/dbadmin/pedido/delete_selected_confirmation.html:21
+#: templates/admin/dbadmin/producto/delete_selected_confirmation.html:36
+#: templates/admin/dbadmin/usuario/delete_selected_confirmation.html:36
+#: templates/admin/dbadmin/visita/delete_selected_confirmation.html:35
+#: templates/admin/dbadmin/visitaclose/delete_selected_confirmation.html:35
+#: templates/admin/dbadmin/visitareschedule/delete_selected_confirmation.html:36
+#, python-format
+msgid ""
+"Deleting the selected %(objects_name)s would require deleting the following "
+"protected related objects:"
+msgstr ""
+
+#: templates/admin/delete_selected_confirmation.html:45
+#: templates/admin/dbadmin/cuentaporcobrar/delete_selected_confirmation.html:46
+#: templates/admin/dbadmin/pedido/delete_selected_confirmation.html:31
+#, python-format
+msgid ""
+"Are you sure you want to delete the selected %(objects_name)s? All of the "
+"following objects and their related items will be deleted:"
+msgstr ""
+
+#: templates/admin/index.html:28
+msgid "Administracion"
 msgstr ""
 
 #: templates/admin/index[nocustomdashboard].html:45
@@ -192,21 +398,18 @@ msgstr ""
 msgid "Autenticaci&oacute;n"
 msgstr ""
 
-#: templates/admin/login.html:33 templates/admino/login.html:17
-msgid "Please correct the error below."
-msgid_plural "Please correct the errors below."
-msgstr[0] ""
-msgstr[1] ""
-
 #: templates/admin/login.html:55 templates/admino/login.html:37
+#: templates/registration/logged_out.html:57
 msgid "Password:"
 msgstr ""
 
 #: templates/admin/login.html:64 templates/admino/login.html:44
+#: templates/registration/logged_out.html:66
 msgid "Forgotten your password or username?"
 msgstr ""
 
 #: templates/admin/login.html:71 templates/admino/login.html:48
+#: templates/registration/logged_out.html:73
 msgid "Log in"
 msgstr ""
 
@@ -226,67 +429,71 @@ msgstr ""
 msgid "Show all"
 msgstr ""
 
-#: templates/admin/submit_line.html:6
-msgid "Delete"
-msgstr ""
-
 #: templates/admin/submit_line.html:9
-msgid "Save"
-msgstr "Guardar"
+msgid "Guardar"
+msgstr ""
 
 #: templates/admin/submit_line.html:12
-msgid "Save as new"
-msgstr "Guardar como nuevo"
+msgid "Guardar como nuevo"
+msgstr ""
 
 #: templates/admin/submit_line.html:15
-msgid "Save and add another"
-msgstr "Guardar y agregar otro"
+msgid "Guardar y agregar otro"
+msgstr ""
 
 #: templates/admin/submit_line.html:18
-msgid "Save and continue editing"
-msgstr "Guardar y continuar editando"
-
-#: templates/admin/dbadmin/pedido/delete_selected_confirmation.html:13
-#, python-format
-msgid ""
-"Deleting the selected %(objects_name)s would result in deleting related "
-"objects, but your account doesn't have permission to delete the following "
-"types of objects:"
+msgid "Guardar y continuar editando"
 msgstr ""
 
-#: templates/admin/dbadmin/pedido/delete_selected_confirmation.html:21
-#, python-format
+#: templates/admin/dbadmin/cliente/delete_selected_confirmation.html:45
 msgid ""
-"Deleting the selected %(objects_name)s would require deleting the following "
-"protected related objects:"
+"¿Est&aacute; usted seguro que desea eliminar el(los) cliente(s) seleccionado"
+"(s)?"
 msgstr ""
 
-#: templates/admin/dbadmin/pedido/delete_selected_confirmation.html:31
-#, python-format
+#: templates/admin/dbadmin/deposito/delete_selected_confirmation.html:45
 msgid ""
-"Are you sure you want to delete the selected %(objects_name)s? All of the "
-"following objects and their related items will be deleted:"
+"¿Est&aacute; usted seguro que desea eliminar el(los) dep&oacute;sito(s) "
+"seleccionado(s)?"
 msgstr ""
 
 #: templates/admin/dbadmin/pedido/delete_selected_confirmation.html:35
-msgid "Esta seguro que desea eliminar el(los) Pedido(s) seleccionado(s)?"
+msgid ""
+"¿Est&aacute; usted seguro que desea eliminar el(los) pedido(s) seleccionado"
+"(s)?"
 msgstr ""
 
-#: templates/admin/dbadmin/pedido/delete_selected_confirmation.html:50
-msgid "Cancel"
+#: templates/admin/dbadmin/producto/delete_selected_confirmation.html:46
+msgid ""
+"¿Est&aacute; usted seguro que desea eliminar el(los) producto(s) seleccionado"
+"(s)?"
 msgstr ""
 
-#: templates/admin/dbadmin/pedido/delete_selected_confirmation.html:51
-msgid "Yes, I'm sure"
+#: templates/admin/dbadmin/usuario/delete_selected_confirmation.html:46
+msgid ""
+"¿Est&aacute; usted seguro que desea eliminar el(los) usuario(s) seleccionado"
+"(s)?"
+msgstr ""
+
+#: templates/admin/dbadmin/visita/delete_selected_confirmation.html:45
+msgid ""
+"¿Est&aacute; usted seguro que desea eliminar la(s) visita(s) seleccionada(s)?"
+msgstr ""
+
+#: templates/admin/dbadmin/visitaclose/delete_selected_confirmation.html:45
+#: templates/admin/dbadmin/visitareschedule/delete_selected_confirmation.html:46
+msgid "¿Esta seguro que desea eliminar la(s) visita(s) seleccionada(s)?"
 msgstr ""
 
 #: templates/admin/includes_grappelli/header.html:22
 #: templates/admino/base.html:71
+#: templates/registration/password_change_form.html:12
 msgid "Change password"
 msgstr ""
 
 #: templates/admin/includes_grappelli/header.html:31
 #: templates/admino/base.html:73
+#: templates/registration/password_change_form.html:15
 msgid "Log out"
 msgstr ""
 
@@ -296,6 +503,7 @@ msgstr ""
 
 #: templates/admin/includes_grappelli/header.html:44
 #: templates/admino/base.html:68
+#: templates/registration/password_change_form.html:8
 msgid "Documentation"
 msgstr ""
 
@@ -339,4 +547,36 @@ msgstr ""
 #: templates/daterange_filter/filter.html:12
 #: templates/daterange_filter/filterCustom.html:40
 msgid "Clear"
+msgstr ""
+
+#: templates/registration/logged_out.html:29
+msgid "La sesi&oacute;n fue finalizada"
+msgstr ""
+
+#: templates/registration/password_change_form.html:21
+#: templates/registration/password_change_form.html:24
+#: templates/registration/password_change_form.html:29
+msgid "Password change"
+msgstr ""
+
+#: templates/registration/password_change_form.html:33
+msgid ""
+"Please enter your old password, for security's sake, and then enter your new "
+"password twice so we can verify you typed it in correctly."
+msgstr ""
+
+#: templates/registration/password_change_form.html:38
+msgid "Contrase&ntilde;a actual"
+msgstr ""
+
+#: templates/registration/password_change_form.html:45
+msgid "New password"
+msgstr ""
+
+#: templates/registration/password_change_form.html:52
+msgid "Contrase&ntilde;a actual (confirmar)"
+msgstr ""
+
+#: templates/registration/password_change_form.html:61
+msgid "Aceptar"
 msgstr ""
