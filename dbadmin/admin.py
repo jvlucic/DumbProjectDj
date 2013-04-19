@@ -551,6 +551,48 @@ class CuentaPorCobrarAdmin(VentasPlusModelAdmin):
     
 admin.site.register(CuentaPorCobrar,CuentaPorCobrarAdmin)
 
+
+class CobranzaAdmin(VentasPlusModelAdmin):
+    dateformat='%d/%m/%Y '
+    list_display = ('numero_recibo','id_cliente','impreso','format_fecha_impreso','fecha','monto','concepto')
+    search_fields = ['id_cliente__pc_nombre']
+    list_filter = [("id_cliente__razon_social",ClienteListFilter),'impreso','fecha','concepto']
+    exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
+    
+
+    add_continue_message=u'La %(name)s %(idC)s asociada al cliente "%(obj)s" fue agregada satisfactoriamente'
+    add_another_message=u'La %(name)s %(idC)s asociada al cliente "%(obj)s" fue agregada satisfactoriamente'
+    add_message=u'La %(name)s %(idC)s asociada al cliente "%(obj)s" fue agregada satisfactoriamente'
+    
+    change_continue_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
+    change_saveasnew_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
+    change_another_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
+    change_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
+
+    
+    def format_fecha_impreso(self, obj):
+        if (obj.fecha_impreso):
+            return obj.fecha_impreso.strftime(self.dateformat)
+    format_fecha_impreso.short_description = _('Fecha Impreso')
+    format_fecha_impreso.admin_order_field = 'fecha_impreso'    
+
+
+    def save_model(self, request, obj, form, change):
+        self.msg_dict={'name': force_text(obj._meta.verbose_name),'idC':force_text(obj.numero_recibo),'obj':force_text(obj.id_cliente)}
+        self.change_msg_dict={'name': force_text(obj._meta.verbose_name),'idC':force_text(obj.numero_recibo),'obj':force_text(obj.id_cliente)}
+        
+        obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
+        obj.field_inst_id=0
+        obj.field_permissions=0
+        obj.field_timestamp_c=int(time.time())
+        obj.field_timestamp_m=datetime.datetime.now()
+        #TODO: DONT HARDCODE GROUP
+        obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
+        obj.save()
+    
+admin.site.register(Cobranza,CobranzaAdmin)
+
+
 class DepositoAdminForm(forms.ModelForm):
     numero= forms.CharField(max_length=64L, label=u'N\xFAmero')
     monto = forms.FloatField(required=True)
