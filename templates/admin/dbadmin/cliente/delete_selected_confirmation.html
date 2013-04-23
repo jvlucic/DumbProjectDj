@@ -43,9 +43,13 @@
         {% else %}
             <div class="grp-group">
                 <h2>{% blocktrans %}¿Est&aacute; usted seguro que desea eliminar el(los) cliente(s) seleccionado(s)?{% endblocktrans %}</h2>
-                {% for deleteable_object in deletable_objects %}
-                    <ul class="grp-nested-list">{{ deleteable_object|unordered_list }}</ul>
-                {% endfor %}
+<!--                 {% for deleteable_object in deletable_objects %} -->
+<!--                     <ul class="grp-nested-list">{{ deleteable_object|unordered_list }}</ul> -->
+<!--                 {% endfor %} -->
+				<ul class="grp-nested-list">
+					{% for object in queryset %}
+					<li> {{object}}</li> {% endfor %}
+				</ul>	 
             </div>
             <form action="" method="post">{% csrf_token %}
                 <div id="submit" class="grp-module grp-submit-row grp-fixed-footer">

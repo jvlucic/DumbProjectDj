@@ -20,7 +20,7 @@ from django.contrib.auth.models import Group, User
 from django.contrib.sites.models import Site
 import time
 from dbadmin.models import Grupo, Motivo, VisitaReschedule, VisitaClose,\
-    DetalleProducto, Categoria
+    DetalleProducto, Categoria, Pago, Banco, MetodoPago
 from dbadmin.filters import ProductTreeListFilter, DateRangeFilter
 from django.db import models, router
 from django.db.models.signals import post_save
@@ -42,7 +42,22 @@ from django.contrib.admin.views.main import ChangeList
 admin.site.unregister(Group)
 admin.site.unregister(Site)
 #admin.site.unregister(User)
-    
+
+# class BancoAdmin(VentasPlusModelAdmin):
+#     add_continue_message=u'El %(name)s "%(obj)s" fue a\xF1adido satisfactoriamente'
+#     add_another_message=u'El %(name)s "%(obj)s" fue a\xF1adido satisfactoriamente'
+#     add_message=u'El %(name)s "%(obj)s" fue a\xF1adido satisfactoriamente'
+#     change_continue_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
+#     change_saveasnew_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
+#     change_another_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
+#     change_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
+# 
+# admin.site.register(Banco,BancoAdmin)
+# 
+# admin.site.register(MetodoPago)
+# class UnidadAdmin(VentasPlusModelAdmin):
+#     pass
+# admin.site.register(Unidad,UnidadAdmin)
 
 class LogEntryAdmin(admin.ModelAdmin):
     list_display = ('format_action_time','user', 'content_type', 'object_id','object_repr','tipo_accion')
@@ -65,19 +80,6 @@ class LogEntryAdmin(admin.ModelAdmin):
 
 admin.site.register(LogEntry,LogEntryAdmin)
 
-class RequiredInlineFormSet(BaseInlineFormSet):
-    """
-    Generates an inline formset that is required
-    """
-
-    def _construct_form(self, i, **kwargs):
-        """
-        Override the method to change the form attribute empty_permitted
-        """
-        form = super(RequiredInlineFormSet, self)._construct_form(i, **kwargs)
-        form.empty_permitted = False
-        return form
-
 class RequireOneFormSet(BaseInlineFormSet):
     """Require at least one form in the formset to be completed."""
     def clean(self):
@@ -99,10 +101,56 @@ class RequireOneFormSet(BaseInlineFormSet):
             if completed < 1:
                 raise forms.ValidationError("Al menos un Producto es requerido.")
 
-class ItemPedidoInlinenForm(forms.ModelForm):
-    cantidad= forms.IntegerField(required=True ,min_value=1,initial=22)
-    class Meta:
-        model = Deposito
+class PagoRequireOneFormSet(BaseInlineFormSet):
+    """Require at least one form in the formset to be completed."""
+    def clean(self):
+        """Check that at least one form has been completed."""
+        super(PagoRequireOneFormSet, self).clean()
+        for error in self.errors:
+            if error:
+                return
+        completed = 0
+        if self.form.base_fields:
+            for cleaned_data in self.cleaned_data:                
+                if cleaned_data and not cleaned_data.get('DELETE', False):
+                    completed += 1
+    
+            if completed < 1:
+                raise forms.ValidationError("Al menos un Pago es requerido.")
+
+    monto = models.FloatField(null=True, blank=True)
+    id_banco = models.ForeignKey('Banco', db_column='id_banco')     
+    fecha_documento = models.DateField(null=True, blank=True)
+    numero_documento = models.CharField(max_length=64L, blank=False,verbose_name="N\xFAmero de documento")
+    titular = models.CharField(max_length=64L, blank=False)
+    saldo = models.FloatField(null=True, blank=True)
+    id_cobranza = models.ForeignKey('Cobranza', db_column='id_cobranza')   
+    id_deposito = models.ForeignKey('Deposito', db_column='id_deposito',verbose_name=u'Dep\xF3sito')     
+    
+class PagoInline(admin.StackedInline):
+    model = Pago
+    extra= 1
+    formset = PagoRequireOneFormSet
+    classes = ('collapse open',)
+    inline_classes = ('collapse open',)
+    verbose_name='Pago Asociado'
+    verbose_name_plural='Pagos Asociados'
+    fieldsets = (
+        (None, {
+            'fields': ( 'monto','saldo','id_banco','fecha_documento','numero_documento','titular','id_cobranza', 'id_deposito','id_metodo_pago')
+        }),
+            
+    )
+
+    def has_add_permission(self, request):
+        if request.user.is_superuser:
+            return True
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        if request.user.is_superuser:
+            return True
+        return False
 
 class ItemPedidoInline(admin.StackedInline):
     model = ItemPedido
@@ -118,13 +166,16 @@ class ItemPedidoInline(admin.StackedInline):
     verbose_name_plural='Productos Asociados'
     fieldsets = (
         (None, {
-            'fields': ( 'id_producto','cantidad','precio_unidad','descuento','descuento_negativo','flete', 'porcentaje_impuesto', 'monto_impuesto','monto_total')
+            'fields': ( 'id_producto','cantidad','id_unidad','precio_unidad','descuento','descuento_negativo','flete', 'porcentaje_impuesto', 'monto_impuesto','monto_total')
         }),
             
     )
 
     def get_readonly_fields(self, request, obj=None):
-        return self.readonly_fields
+        if request.user.is_superuser:
+            return []
+        else:        
+            return self.readonly_fields
 
     def has_add_permission(self, request):
         if request.user.is_superuser:
@@ -135,23 +186,12 @@ class ItemPedidoInline(admin.StackedInline):
         if request.user.is_superuser:
             return True
         return False
-    
-    def save_model(self, request, obj, form, change):
-        obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
-        obj.field_inst_id=0
-        obj.field_permissions=0
-        obj.field_timestamp_c=int(time.time())
-        obj.field_timestamp_m=datetime.datetime.now()
-        #TODO: DONT HARDCODE GROUP
-        obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
-        obj.save()
-            
+
 class PedidoAdmin(VentasPlusModelAdmin):
     list_display = ('format_fecha','format_fecha_entrega','format_cliente','total','format_vendedor','tiene_comentario')
-    #TODO: FIX DATE HIERARCHY
     date_hierarchy = 'fecha'
     dateformat='%d/%m/%Y '
-    exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
+    
     list_filter=[('fecha', DateRangeFilter)]
     fields=['fecha','id_cliente','fecha_entrega','id_metodo_pago','numero','comentario','total']
     
@@ -166,16 +206,6 @@ class PedidoAdmin(VentasPlusModelAdmin):
     
     class Media:
         js = ("js/grappelli_custom_datepicker_template_dom_init.js",)
-        
-    def save_model(self, request, obj, form, change):
-        obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
-        obj.field_inst_id=0
-        obj.field_permissions=0
-        obj.field_timestamp_c=int(time.time())
-        obj.field_timestamp_m=datetime.datetime.now()
-        #TODO: DONT HARDCODE GROUP
-        obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
-        obj.save()
         
     def format_vendedor(self, obj):
         return obj.field_owner_id.nombre+" "+obj.field_owner_id.apellido
@@ -209,45 +239,7 @@ class PedidoAdmin(VentasPlusModelAdmin):
         ItemPedidoInline,
     ]
 
-    readonly_fields =['fecha', 'fecha_entrega','id_cliente','field_owner_id','total','numero','comentario','id_metodo_pago']
-
-
-
-    def has_add_permission(self, request):
-        if request.user.is_superuser:
-            return False
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.is_superuser:
-            return False
-        return False
-
-    def changelist_view(self, request,  extra_context=None):
-        newrequest3=request
-        newrequest3.GET._mutable=True
-        print 'Original'
-        print newrequest3.GET
-
-        tobedel=[]
-        for k in newrequest3.GET.iterkeys():
-            if (newrequest3.GET.getlist(k)[0]==u''):
-                tobedel.append(k)
-            else:
-                if (k.find('__id__')!=-1):
-                    newrequest3.GET.__setitem__(k,newrequest3.GET.get(k))                    
-                elif (k.find('total')!=-1):
-                    newrequest3.GET.__setitem__(k,newrequest3.GET.get(k))                                      
-                else:
-                    newrequest3.GET.__setitem__(k,newrequest3.GET.getlist(k)[0])      
-        for k in tobedel:
-            del newrequest3.GET[k]
-        
-        print 'FINAL'
-        print newrequest3.GET
-        newrequest3.GET._mutable=False
-        return super(PedidoAdmin, self).changelist_view(request)
-
+#    readonly_fields =['fecha', 'fecha_entrega','id_cliente','field_owner_id','total','numero','comentario','id_metodo_pago']
 
 admin.site.register(Pedido,PedidoAdmin)    
 
@@ -262,21 +254,20 @@ class ClienteAdminForm(forms.ModelForm):
 class ClienteAdmin(VentasPlusModelAdmin):
     list_display = ('razon_social','pc_nombre','pc_telefono','identificacion')
     search_fields = ['pc_nombre']
-    exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
 
     add_continue_message=u'El %(name)s "%(obj)s" fue a\xF1adido satisfactoriamente'
     add_another_message=u'El %(name)s "%(obj)s" fue a\xF1adido satisfactoriamente'
     add_message=u'El %(name)s "%(obj)s" fue a\xF1adido satisfactoriamente'
-    
     change_continue_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
     change_saveasnew_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
     change_another_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
     change_message='El %(name)s "%(obj)s" fue modificado satisfactoriamente.'
     classes = ('collapse ',)
+
     form=ClienteAdminForm
     fieldsets = (
         (None, {
-            'fields': ( 'codigo','razon_social','identificacion','telefono1','telefono2','fax', 'correo', 'comentario','tipo','flete','descuento_maestro','descuento_otro1','descuento_otro2','id_zona')
+            'fields': ( 'codigo','razon_social','identificacion','telefono1','telefono2','fax', 'correo', 'comentario','tipo','flete','descuento_maestro','descuento_otro1','descuento_otro2')
         }),
         ('Datos de la Persona de Contacto', {
             'classes': ('collapse',),
@@ -284,17 +275,7 @@ class ClienteAdmin(VentasPlusModelAdmin):
         }),
             
     )
-    
-    def save_model(self, request, obj, form, change):
-        obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
-        obj.field_inst_id=0
-        obj.field_permissions=0
-        obj.field_timestamp_c=int(time.time())
-        obj.field_timestamp_m=datetime.datetime.now()
-        #TODO: DONT HARDCODE GROUP
-        obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
-        obj.save()
-    
+        
 admin.site.register(Cliente,ClienteAdmin)
 
 class DetalleProductoInlineForm(forms.ModelForm):
@@ -311,12 +292,6 @@ class DetalleProductoInline(admin.TabularInline):
 #   readonly_fields =['id_level','level','descripcion_level','id_letter']
     verbose_name='Detalle Producto'
     verbose_name_plural='Detalle Producto'
-
-#    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-#        if db_field.name == "id_level":
-#            kwargs["queryset"] = Categoria.objects.filter(id_level=1)
-#        return super(DetalleProductoInline, self).formfield_for_foreignkey(db_field, request, **kwargs)
- 
     
     def has_add_permission(self, request):
         if request.user.is_superuser:
@@ -348,9 +323,9 @@ class ProductoCustomForm (forms.ModelForm):
                         
             
 class ProductoAdmin(VentasPlusModelAdmin):
-    list_display = ('id_surrogate','itemno','categoria','tipo','linea','calidad','tamano','color','nombre','precio','cantidad')
+    list_display = ('itemno','nombre','categoria','tipo','linea','calidad','tamano','color','precio','cantidad')
     search_fields = ['nombre']
-    exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
+    
     list_filter=[ProductTreeListFilter ,ProductTreeListFilter,ProductTreeListFilter,ProductTreeListFilter,ProductTreeListFilter,ProductTreeListFilter]
     fields=['itemno','nombre','precio','cantidad','categoria','tipo','linea','calidad','tamano','color']
     form=ProductoCustomForm
@@ -374,7 +349,10 @@ class ProductoAdmin(VentasPlusModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         readonly_fields=super(ProductoAdmin, self).get_readonly_fields(request)
-        return list(readonly_fields)+['categoria','tipo','linea','calidad','tamano','color']
+        if request.user.is_superuser:
+            return readonly_fields
+        else:
+            return list(readonly_fields)+['categoria','tipo','linea','calidad','tamano','color']
         
     def get_form(self, request, obj=None, **kwargs):
         return super(ProductoAdmin, self).get_form(request, obj=None, **kwargs)
@@ -405,15 +383,7 @@ class ProductoAdmin(VentasPlusModelAdmin):
 
         
     def save_model(self, request, obj, form, change):
-
-        
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
-        obj.field_inst_id=0
-        obj.field_permissions=0
-        obj.field_timestamp_c=int(time.time())
-        obj.field_timestamp_m=datetime.datetime.now()
-        #TODO: DONT HARDCODE GROUP
-        obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
         obj.save()
         self.change_msg_dict={'name': force_text(obj._meta.verbose_name),'obj':force_text(obj.id_surrogate)}
         self.msg_dict={'name': force_text(obj._meta.verbose_name),'obj':force_text(obj.id_surrogate)}        
@@ -441,19 +411,12 @@ class ProductoAdmin(VentasPlusModelAdmin):
                                                 descripcion_level=categoria.nombre,
                                                 id_producto=producto
                                                 )
+                detalleProducto.field_timestamp_c=datetime.datetime.now()+datetime.timedelta(seconds=i)
+                detalleProducto.counter=int(time.time()+i)
                 detalleProducto.field_owner_id = Usuario.objects.get(pk=producto.field_owner_id) 
-                detalleProducto.field_inst_id=0
-                detalleProducto.field_permissions=0
-                detalleProducto.field_timestamp_c=int(time.time()+i)
-                detalleProducto.field_timestamp_m=datetime.datetime.now()
-                #TODO: DONT HARDCODE GROUP
-                detalleProducto.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
                 detalleProducto.save()        
                 i+=1
-
 admin.site.register(Producto,ProductoAdmin)
-
-
 
 
 class UsuarioAdmin(VentasPlusModelAdmin):
@@ -478,14 +441,7 @@ class UsuarioAdmin(VentasPlusModelAdmin):
     def save_model(self, request, obj, form, change):
         self.change_msg_dict={'name': force_text(obj._meta.verbose_name),'code':force_text(obj.codigo),'obj':force_text(obj)}
         self.msg_dict={'name': force_text(obj._meta.verbose_name),'code':force_text(obj.codigo),'obj':force_text(obj)}
-        
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
-        obj.field_inst_id=0
-        obj.field_permissions=0
-        obj.field_timestamp_c=int(time.time())
-        obj.field_timestamp_m=datetime.datetime.now()
-        #TODO: DONT HARDCODE GROUP
-        obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
         obj.save()
 
 admin.site.register(Usuario,UsuarioAdmin)
@@ -504,9 +460,6 @@ class CuentaPorCobrarAdmin(VentasPlusModelAdmin):
     list_display = ('numero_documento','id_cliente','procesada','esta_vencida','format_fecha_vencimiento','cancelada')
     search_fields = ['id_cliente__pc_nombre']
     list_filter = [("id_cliente__razon_social",ClienteListFilter),'procesada','fecha_vencimiento','cancelada']
-    exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
-    readonly_fields =['numero_documento', 'monto_original','saldo_actual','fecha_documento','fecha_despacho','fecha_vencimiento','fecha_entrega','procesada','cancelada','id_cliente','id_cobranza']
-    
     
     add_continue_message=u'La %(name)s %(idC)s asociada al cliente "%(obj)s" fue agregada satisfactoriamente'
     add_another_message=u'La %(name)s %(idC)s asociada al cliente "%(obj)s" fue agregada satisfactoriamente'
@@ -524,29 +477,10 @@ class CuentaPorCobrarAdmin(VentasPlusModelAdmin):
     format_fecha_vencimiento.short_description = _('Fecha Vencimiento')
     format_fecha_vencimiento.admin_order_field = 'fecha_vencimiento'    
     
-
-
-    def has_add_permission(self, request):
-        if request.user.is_superuser:
-            return False
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        if request.user.is_superuser:
-            return False
-        return False
-
     def save_model(self, request, obj, form, change):
         self.msg_dict={'name': force_text(obj._meta.verbose_name),'idC':force_text(obj.numero_documento),'obj':force_text(obj.id_cliente)}
         self.change_msg_dict={'name': force_text(obj._meta.verbose_name),'idC':force_text(obj.numero_documento),'obj':force_text(obj.id_cliente)}
-        
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
-        obj.field_inst_id=0
-        obj.field_permissions=0
-        obj.field_timestamp_c=int(time.time())
-        obj.field_timestamp_m=datetime.datetime.now()
-        #TODO: DONT HARDCODE GROUP
-        obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
         obj.save()
     
 admin.site.register(CuentaPorCobrar,CuentaPorCobrarAdmin)
@@ -557,9 +491,7 @@ class CobranzaAdmin(VentasPlusModelAdmin):
     list_display = ('numero_recibo','id_cliente','impreso','format_fecha_impreso','fecha','monto','concepto')
     search_fields = ['id_cliente__pc_nombre']
     list_filter = [("id_cliente__razon_social",ClienteListFilter),'impreso','fecha','concepto']
-    exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
     
-
     add_continue_message=u'La %(name)s %(idC)s asociada al cliente "%(obj)s" fue agregada satisfactoriamente'
     add_another_message=u'La %(name)s %(idC)s asociada al cliente "%(obj)s" fue agregada satisfactoriamente'
     add_message=u'La %(name)s %(idC)s asociada al cliente "%(obj)s" fue agregada satisfactoriamente'
@@ -580,14 +512,7 @@ class CobranzaAdmin(VentasPlusModelAdmin):
     def save_model(self, request, obj, form, change):
         self.msg_dict={'name': force_text(obj._meta.verbose_name),'idC':force_text(obj.numero_recibo),'obj':force_text(obj.id_cliente)}
         self.change_msg_dict={'name': force_text(obj._meta.verbose_name),'idC':force_text(obj.numero_recibo),'obj':force_text(obj.id_cliente)}
-        
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
-        obj.field_inst_id=0
-        obj.field_permissions=0
-        obj.field_timestamp_c=int(time.time())
-        obj.field_timestamp_m=datetime.datetime.now()
-        #TODO: DONT HARDCODE GROUP
-        obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
         obj.save()
     
 admin.site.register(Cobranza,CobranzaAdmin)
@@ -607,7 +532,7 @@ class DepositoAdminForm(forms.ModelForm):
 class DepositoAdmin(VentasPlusModelAdmin):
     list_display = ('numero','id_banco','format_monto','format_fecha')
     search_fields = ['numero']
-    exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id','latitud','longitud')
+    exclude = ('id_surrogate','counter','field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id','latitud','longitud')
     form=DepositoAdminForm
     dateformat='%d/%m/%Y '    
     add_continue_message=u'El %(name)s "%(obj)s" fue agregado satisfactoriamente'
@@ -618,6 +543,7 @@ class DepositoAdmin(VentasPlusModelAdmin):
     change_saveasnew_message=u'El %(name)s "%(obj)s" fue modificado satisfactoriamente'
     change_another_message=u'El %(name)s "%(obj)s" fue modificado satisfactoriamente'
     change_message=u'El %(name)s "%(obj)s" fue modificado satisfactoriamente'
+    inlines=[PagoInline]
     
     def format_fecha(self, obj):
         if (obj.fecha):
@@ -629,15 +555,7 @@ class DepositoAdmin(VentasPlusModelAdmin):
         return '{:,.2f}'.format(obj.monto).replace(".","%").replace(",",".").replace("%",",")+" Bs." 
     format_monto.short_description = 'Monto'
     format_monto.admin_order_field = 'monto'
-    def save_model(self, request, obj, form, change):
-        obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
-        obj.field_inst_id=0
-        obj.field_permissions=0
-        obj.field_timestamp_c=int(time.time())
-        obj.field_timestamp_m=datetime.datetime.now()
-        #TODO: DONT HARDCODE GROUP
-        obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
-        obj.save()
+
     
 admin.site.register(Deposito,DepositoAdmin)
 
@@ -660,7 +578,7 @@ class VisitaCreateAdmin(VisitaVentasPlusModelAdmin):
     list_filter=[('fecha', DateRangeFilter),'id_cliente']
     search_fields = ['id_cliente']    
     fields=('fecha','id_cliente','comentario','id_motivo_visita')
-    exclude = ('field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id','hora_inicio','hora_fin')
+    exclude = ('id_surrogate','counter','field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id','hora_inicio','hora_fin')
     add_continue_message=u'La %(name)s %(idC)s asociada al cliente "%(obj)s" fue agregada satisfactoriamente'
     add_another_message=u'La %(name)s %(idC)s asociada al cliente "%(obj)s" fue agregada satisfactoriamente'
     add_message=u'La %(name)s %(idC)s asociada al cliente "%(obj)s" fue agregada satisfactoriamente'
@@ -675,14 +593,7 @@ class VisitaCreateAdmin(VisitaVentasPlusModelAdmin):
     def save_model(self, request, obj, form, change):
         self.msg_dict={'name': force_text(obj._meta.verbose_name),'idC':force_text(obj.fecha.strftime(self.dateformat)),'obj':force_text(obj.id_cliente)}
         self.change_msg_dict={'name': force_text(obj._meta.verbose_name),'idC':force_text(obj.fecha.strftime(self.dateformat)),'obj':force_text(obj.id_cliente)}
-        
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
-        obj.field_inst_id=0
-        obj.field_permissions=0
-        obj.field_timestamp_c=int(time.time())
-        obj.field_timestamp_m=datetime.datetime.now()
-        #TODO: DONT HARDCODE GROUP
-        obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
         obj.save()
 
     def format_fecha(self, obj):
@@ -709,21 +620,8 @@ class VisitaRescheduleAdmin(VisitaVentasPlusModelAdmin):
     def has_add_permission(self, request):
         return False    
     
-    def save_model(self, request, obj, form, change):
-        obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
-        obj.field_inst_id=0
-        obj.field_permissions=0
-        obj.field_timestamp_c=int(time.time())
-        obj.field_timestamp_m=datetime.datetime.now()
-        #TODO: DONT HARDCODE GROUP
-        obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
-        obj.save()
-
-    
 admin.site.register(VisitaReschedule,VisitaRescheduleAdmin)
 
-
-        
         
 class VisitaCloseAdmin(VisitaVentasPlusModelAdmin):
     list_display = ['id_cliente','visitado','comentario']    
@@ -736,17 +634,6 @@ class VisitaCloseAdmin(VisitaVentasPlusModelAdmin):
         js = ("js/grappelli_custom_datepicker_template.js","js/closeVisita.js")    
     def has_add_permission(self, request):
         return False    
-
-    def save_model(self, request, obj, form, change):
-        obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
-        obj.field_inst_id=0
-        obj.field_permissions=0
-        obj.field_timestamp_c=int(time.time())
-        obj.field_timestamp_m=datetime.datetime.now()
-        #TODO: DONT HARDCODE GROUP
-        obj.field_group_id= Grupo.objects.get(pk='TESTGROUP') 
-        obj.save()
-
     
 admin.site.register(VisitaClose,VisitaCloseAdmin)
 

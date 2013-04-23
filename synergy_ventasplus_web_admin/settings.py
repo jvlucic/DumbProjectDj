@@ -60,7 +60,6 @@ PROJECT_BASE_DIR= os.path.split(PROJECT_DIR)[0]
 LOCALE_PATHS = (
     os.path.join(PROJECT_BASE_DIR, 'locale'),
 )
-print LOCALE_PATHS
 # If you set this to False, Django will not use timezone-aware datetimes.
 USE_TZ = True
 

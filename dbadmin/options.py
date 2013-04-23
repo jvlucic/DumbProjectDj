@@ -16,6 +16,7 @@ from django.contrib.admin.util import unquote, get_deleted_objects,\
     model_ngettext, flatten_fieldsets
 from django.core.exceptions import PermissionDenied
 from django.template.response import TemplateResponse
+from dbadmin.models import Usuario
 
 def custom_delete_selected(modeladmin, request, queryset):
         """
@@ -109,12 +110,16 @@ class VentasPlusModelAdmin(ModelAdmin):
     change_msg_dict=None
     delete_msg_dict=None
     
-    #actions = [custom_delete_selected]
-    actions = []
-    
+    actions= [custom_delete_selected]
+    exclude = ('id_surrogate','counter','field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id')
+
+    def save_model(self, request, obj, form, change):
+        obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
+        obj.save()
+        
     def get_readonly_fields(self, request, obj=None):
-#        if request.user.is_superuser:
-#            return self.readonly_fields
+        if request.user.is_superuser:
+            return self.readonly_fields
         if self.exclude:
             excludeList=list(self.exclude)
         else:
@@ -129,15 +134,16 @@ class VentasPlusModelAdmin(ModelAdmin):
             ))
 
         return list(set(fields) ^ set(excludeList))
-            
+                
     def has_add_permission(self, request):
+          
         if request.user.is_superuser:
-            return False
+            return True
         return False
 
     def has_delete_permission(self, request, obj=None):
         if request.user.is_superuser:
-            return False
+            return True
         return False
         
     
@@ -159,7 +165,9 @@ class VentasPlusModelAdmin(ModelAdmin):
     def get_actions(self, request):
         actions = super(VentasPlusModelAdmin, self).get_actions(request)
         del actions['delete_selected']
-        return actions 
+        if not request.user.is_superuser:
+            del actions['custom_delete_selected']
+        return actions        
         
     def response_add(self, request, obj, post_url_continue=None):
             """

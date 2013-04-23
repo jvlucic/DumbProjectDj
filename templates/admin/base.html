@@ -187,15 +187,19 @@
 				display: none;
 			}
 			/*Hide change link in dashboard*/
-			.grp-change-link{
-				visibility: hidden;
-				display: none;			
-			}
-			/*Hide save button bar in Models*/
-			.grp-module.grp-submit-row.grp-fixed-footer{
-				visibility: hidden;
-				display: none;			
-			}
+			{% if not request.user.is_superuser %}
+				.grp-change-link{
+					visibility: hidden;
+					display: none;			
+				}
+				/*Hide save button bar in Models*/
+				.grp-module.grp-submit-row.grp-fixed-footer{
+					visibility: hidden;
+					display: none;			
+				}				
+			{% endif %}
+
+
 			/*SHOW save button bar in Visita*/
 			.dbadmin-visita .grp-module.grp-submit-row.grp-fixed-footer{
 				visibility: visible;

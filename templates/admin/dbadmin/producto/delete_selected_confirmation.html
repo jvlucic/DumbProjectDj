@@ -47,14 +47,7 @@
 <!--                 {% for deleteable_object in deletable_objects %} -->
 <!--                     <ul class="grp-nested-list">{{ deleteable_object|unordered_list }}</ul> -->
 <!--                 {% endfor %} -->
-<!-- 				<ul class="grp-nested-list"> -->
-<!-- 					{% for object in queryset %} -->
-<!-- 						<li>Producto: {{object}} </li>  -->
-<!-- 						{% for obj in object.detalleproducto_set.all %} -->
-<!-- 							<li>{{obj}} </li>  -->
-<!-- 						{% endfor %} -->
-<!-- 					{% endfor %} -->
-<!-- 				</ul>            -->
+
 				<ul class="grp-nested-list">
 					{% for object in queryset %}
 					<li>Producto: {{object}}</li> {% endfor %}
