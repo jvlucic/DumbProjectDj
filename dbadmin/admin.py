@@ -95,12 +95,20 @@ class RequireOneFormSet(BaseInlineFormSet):
                 if (not('cantidad' in cleaned_data) or ((cleaned_data['cantidad'] is None) or (not isinstance( cleaned_data['cantidad'], ( int, long ) )))):
                     raise forms.ValidationError("Debe agregar al menos un producto")
                 
+                cleaned_data['field_timestamp_c']=datetime.datetime.now()+datetime.timedelta(seconds=completed)
+                cleaned_data['counter']=int(time.time()+completed)   
+                               
                 if cleaned_data and not cleaned_data.get('DELETE', False):
                     completed += 1
     
             if completed < 1:
                 raise forms.ValidationError("Al menos un Producto es requerido.")
 
+    def save_new(self, form, commit=True):
+        form.instance.counter=form.cleaned_data['counter']
+        form.instance.field_timestamp_c=form.cleaned_data['field_timestamp_c']
+        return super(RequireOneFormSet, self).save_new(form, commit=commit)
+    
 class PagoRequireOneFormSet(BaseInlineFormSet):
     """Require at least one form in the formset to be completed."""
     def clean(self):
@@ -111,13 +119,22 @@ class PagoRequireOneFormSet(BaseInlineFormSet):
                 return
         completed = 0
         if self.form.base_fields:
-            for cleaned_data in self.cleaned_data:                
+            for cleaned_data in self.cleaned_data:
+                cleaned_data['field_timestamp_c']=datetime.datetime.now()+datetime.timedelta(seconds=completed)
+                cleaned_data['counter']=int(time.time()+completed)  
                 if cleaned_data and not cleaned_data.get('DELETE', False):
                     completed += 1
     
             if completed < 1:
                 raise forms.ValidationError("Al menos un Pago es requerido.")
+            
 
+    def save_new(self, form, commit=True):
+        form.instance.counter=form.cleaned_data['counter']
+        form.instance.field_timestamp_c=form.cleaned_data['field_timestamp_c']
+        return super(PagoRequireOneFormSet, self).save_new(form, commit=commit)
+
+    
     monto = models.FloatField(null=True, blank=True)
     id_banco = models.ForeignKey('Banco', db_column='id_banco')     
     fecha_documento = models.DateField(null=True, blank=True)
@@ -151,6 +168,9 @@ class PagoInline(admin.StackedInline):
         if request.user.is_superuser:
             return True
         return False
+
+    def save_model(self, request, obj, form, change):
+        obj.save()    
 
 class ItemPedidoInline(admin.StackedInline):
     model = ItemPedido
