@@ -8,6 +8,16 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         
+        # Adding model 'Bitacora'
+        db.create_table(u'bitacora', (
+            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('usuario', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['dbadmin.Usuario'], db_column=u'usuario')),
+            ('operacion', self.gf('django.db.models.fields.CharField')(max_length=64L)),
+            ('timestamp', self.gf('synergy_ventasplus_web_admin.model_util.UnixTimestampField')()),
+            ('extra', self.gf('django.db.models.fields.CharField')(max_length=256L, null=True, blank=True)),
+        ))
+        db.send_create_signal(u'dbadmin', ['Bitacora'])
+
         # Adding model 'Grupo'
         db.create_table(u'grupo', (
             ('nombre', self.gf('django.db.models.fields.CharField')(max_length=64L, primary_key=True)),
@@ -32,6 +42,22 @@ class Migration(SchemaMigration):
             ('field_deleted', self.gf('django.db.models.fields.BooleanField')(default=False, db_column=u'_deleted')),
         ))
         db.send_create_signal(u'dbadmin', ['Banco'])
+
+        # Adding model 'BancoCuenta'
+        db.create_table(u'ps_banco_cuenta', (
+            ('id_surrogate', self.gf('django.db.models.fields.CharField')(max_length=192L, primary_key=True, db_column=u'_surrogate_id')),
+            ('id_banco', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['dbadmin.Banco'], db_column=u'id_banco')),
+            ('cuenta', self.gf('django.db.models.fields.CharField')(max_length=64L)),
+            ('counter', self.gf('django.db.models.fields.IntegerField')(max_length=16L, db_column=u'_counter')),
+            ('field_owner_id', self.gf('django.db.models.fields.related.ForeignKey')(default=u'admin', to=orm['dbadmin.Usuario'], db_column=u'_owner_id')),
+            ('field_inst_id', self.gf('django.db.models.fields.CharField')(default=u'backend', max_length=128, db_column=u'_inst_id')),
+            ('field_group_id', self.gf('django.db.models.fields.related.ForeignKey')(default=u'admin', to=orm['dbadmin.Grupo'], db_column=u'_group_id')),
+            ('field_permissions', self.gf('django.db.models.fields.IntegerField')(default=0, db_column=u'_permissions')),
+            ('field_timestamp_c', self.gf('synergy_ventasplus_web_admin.model_util.UnixTimestampField')(max_length=22, null=True, db_column=u'_timestamp_c')),
+            ('field_timestamp_m', self.gf('synergy_ventasplus_web_admin.model_util.UnixTimestampField')(db_column=u'_timestamp_m')),
+            ('field_deleted', self.gf('django.db.models.fields.BooleanField')(default=False, db_column=u'_deleted')),
+        ))
+        db.send_create_signal(u'dbadmin', ['BancoCuenta'])
 
         # Adding model 'Categoria'
         db.create_table(u'ps_categoria', (
@@ -64,6 +90,8 @@ class Migration(SchemaMigration):
             ('comentario', self.gf('django.db.models.fields.CharField')(max_length=255L)),
             ('tipo', self.gf('django.db.models.fields.IntegerField')(null=True, blank=True)),
             ('flete', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
+            ('limite_credito', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
+            ('saldo_disponible', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
             ('descuento_maestro', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
             ('descuento_otro1', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
             ('descuento_otro2', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
@@ -92,12 +120,13 @@ class Migration(SchemaMigration):
             ('impreso', self.gf('django.db.models.fields.NullBooleanField')(null=True, blank=True)),
             ('fecha_impreso', self.gf('django.db.models.fields.DateField')(null=True, blank=True)),
             ('fecha', self.gf('django.db.models.fields.DateField')(null=True, blank=True)),
-            ('id_cobrador', self.gf('django.db.models.fields.CharField')(max_length=64L)),
+            ('id_cobrador', self.gf('django.db.models.fields.CharField')(max_length=192L)),
             ('id_cliente', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['dbadmin.Cliente'], db_column=u'id_cliente')),
             ('monto', self.gf('django.db.models.fields.FloatField')()),
             ('concepto', self.gf('django.db.models.fields.CharField')(max_length=64L)),
             ('latitud', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
             ('longitud', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
+            ('correlativo', self.gf('django.db.models.fields.IntegerField')(null=True, db_column=u'correlativo', blank=True)),
             ('counter', self.gf('django.db.models.fields.IntegerField')(db_column=u'_counter', blank=True)),
             ('field_owner_id', self.gf('django.db.models.fields.related.ForeignKey')(default=u'admin', to=orm['dbadmin.Usuario'], db_column=u'_owner_id')),
             ('field_inst_id', self.gf('django.db.models.fields.CharField')(default=u'backend', max_length=128, db_column=u'_inst_id')),
@@ -109,20 +138,56 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal(u'dbadmin', ['Cobranza'])
 
+        # Adding model 'CobranzaCuentaCuentaPorCobrar'
+        db.create_table(u'ps_cobranza_cuenta_por_cobrar', (
+            ('id_surrogate', self.gf('django.db.models.fields.CharField')(max_length=192L, primary_key=True, db_column=u'_surrogate_id')),
+            ('id_cobranza', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['dbadmin.Cobranza'], db_column=u'id_cobranza')),
+            ('id_cuenta_por_cobrar', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['dbadmin.CuentaPorCobrar'], db_column=u'id_cuenta_por_cobrar')),
+            ('fecha', self.gf('django.db.models.fields.DateField')(null=True, blank=True)),
+            ('tipo', self.gf('django.db.models.fields.CharField')(max_length=64L, null=True, blank=True)),
+            ('id_cliente', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['dbadmin.Cliente'], db_column=u'id_cliente')),
+            ('counter', self.gf('django.db.models.fields.IntegerField')(db_column=u'_counter', blank=True)),
+            ('field_owner_id', self.gf('django.db.models.fields.related.ForeignKey')(default=u'admin', to=orm['dbadmin.Usuario'], db_column=u'_owner_id')),
+            ('field_inst_id', self.gf('django.db.models.fields.CharField')(default=u'backend', max_length=128, db_column=u'_inst_id')),
+            ('field_group_id', self.gf('django.db.models.fields.related.ForeignKey')(default=u'admin', to=orm['dbadmin.Grupo'], db_column=u'_group_id')),
+            ('field_permissions', self.gf('django.db.models.fields.IntegerField')(default=0, db_column=u'_permissions')),
+            ('field_timestamp_c', self.gf('synergy_ventasplus_web_admin.model_util.UnixTimestampField')(max_length=22, null=True, db_column=u'_timestamp_c')),
+            ('field_timestamp_m', self.gf('synergy_ventasplus_web_admin.model_util.UnixTimestampField')(db_column=u'_timestamp_m')),
+            ('field_deleted', self.gf('django.db.models.fields.BooleanField')(default=False, db_column=u'_deleted')),
+        ))
+        db.send_create_signal(u'dbadmin', ['CobranzaCuentaCuentaPorCobrar'])
+
+        # Adding model 'Configuracion'
+        db.create_table(u'ps_configuracion', (
+            ('id_surrogate', self.gf('django.db.models.fields.CharField')(max_length=192L, primary_key=True, db_column=u'_surrogate_id')),
+            ('clave', self.gf('django.db.models.fields.CharField')(max_length=192L)),
+            ('valor', self.gf('django.db.models.fields.CharField')(max_length=192L, null=True, blank=True)),
+            ('counter', self.gf('django.db.models.fields.IntegerField')(db_column=u'_counter', blank=True)),
+            ('field_owner_id', self.gf('django.db.models.fields.related.ForeignKey')(default=u'admin', to=orm['dbadmin.Usuario'], db_column=u'_owner_id')),
+            ('field_inst_id', self.gf('django.db.models.fields.CharField')(default=u'backend', max_length=128, db_column=u'_inst_id')),
+            ('field_group_id', self.gf('django.db.models.fields.related.ForeignKey')(default=u'admin', to=orm['dbadmin.Grupo'], db_column=u'_group_id')),
+            ('field_permissions', self.gf('django.db.models.fields.IntegerField')(default=0, db_column=u'_permissions')),
+            ('field_timestamp_c', self.gf('synergy_ventasplus_web_admin.model_util.UnixTimestampField')(max_length=22, null=True, db_column=u'_timestamp_c')),
+            ('field_timestamp_m', self.gf('synergy_ventasplus_web_admin.model_util.UnixTimestampField')(db_column=u'_timestamp_m')),
+            ('field_deleted', self.gf('django.db.models.fields.BooleanField')(default=False, db_column=u'_deleted')),
+        ))
+        db.send_create_signal(u'dbadmin', ['Configuracion'])
+
         # Adding model 'CuentaPorCobrar'
         db.create_table(u'ps_cuenta_por_cobrar', (
             ('id_surrogate', self.gf('django.db.models.fields.CharField')(max_length=192L, primary_key=True, db_column=u'_surrogate_id')),
             ('numero_documento', self.gf('django.db.models.fields.CharField')(max_length=64L)),
             ('monto_original', self.gf('django.db.models.fields.FloatField')()),
             ('saldo_actual', self.gf('django.db.models.fields.FloatField')()),
+            ('saldo_erp', self.gf('django.db.models.fields.FloatField')()),
             ('fecha_documento', self.gf('django.db.models.fields.DateField')()),
             ('fecha_despacho', self.gf('django.db.models.fields.DateField')(null=True, blank=True)),
             ('fecha_vencimiento', self.gf('django.db.models.fields.DateField')()),
             ('fecha_entrega', self.gf('django.db.models.fields.DateField')(null=True, blank=True)),
+            ('tipo', self.gf('django.db.models.fields.CharField')(max_length=64L, null=True, blank=True)),
             ('procesada', self.gf('django.db.models.fields.NullBooleanField')(null=True, blank=True)),
             ('cancelada', self.gf('django.db.models.fields.NullBooleanField')(null=True, blank=True)),
             ('id_cliente', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['dbadmin.Cliente'], db_column=u'id_cliente')),
-            ('id_cobranza', self.gf('django.db.models.fields.related.ForeignKey')(default=None, to=orm['dbadmin.Cobranza'], null=True, db_column=u'id_cobranza', blank=True)),
             ('counter', self.gf('django.db.models.fields.IntegerField')(db_column=u'_counter', blank=True)),
             ('field_owner_id', self.gf('django.db.models.fields.related.ForeignKey')(default=u'admin', to=orm['dbadmin.Usuario'], db_column=u'_owner_id')),
             ('field_inst_id', self.gf('django.db.models.fields.CharField')(default=u'backend', max_length=128, db_column=u'_inst_id')),
@@ -144,6 +209,7 @@ class Migration(SchemaMigration):
             ('cuenta', self.gf('django.db.models.fields.CharField')(max_length=64L)),
             ('latitud', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
             ('longitud', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
+            ('correlativo', self.gf('django.db.models.fields.IntegerField')(null=True, db_column=u'correlativo', blank=True)),
             ('counter', self.gf('django.db.models.fields.IntegerField')(db_column=u'_counter', blank=True)),
             ('field_owner_id', self.gf('django.db.models.fields.related.ForeignKey')(default=u'admin', to=orm['dbadmin.Usuario'], db_column=u'_owner_id')),
             ('field_inst_id', self.gf('django.db.models.fields.CharField')(default=u'backend', max_length=128, db_column=u'_inst_id')),
@@ -288,6 +354,7 @@ class Migration(SchemaMigration):
             ('numero_documento', self.gf('django.db.models.fields.CharField')(max_length=64L)),
             ('titular', self.gf('django.db.models.fields.CharField')(max_length=64L)),
             ('saldo', self.gf('django.db.models.fields.FloatField')()),
+            ('id_cliente', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['dbadmin.Cliente'], db_column=u'id_cliente')),
             ('id_cobranza', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['dbadmin.Cobranza'], db_column=u'id_cobranza')),
             ('id_deposito', self.gf('django.db.models.fields.related.ForeignKey')(default=None, to=orm['dbadmin.Deposito'], null=True, db_column=u'id_deposito', blank=True)),
             ('id_metodo_pago', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['dbadmin.MetodoPago'], db_column=u'id_metodo_pago')),
@@ -323,6 +390,8 @@ class Migration(SchemaMigration):
             ('longitud', self.gf('django.db.models.fields.FloatField')(null=True, blank=True)),
             ('id_cliente', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['dbadmin.Cliente'], db_column=u'id_cliente')),
             ('id_metodo_pago', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['dbadmin.MetodoPago'], null=True, db_column=u'id_metodo_pago', blank=True)),
+            ('correlativo', self.gf('django.db.models.fields.IntegerField')(null=True, db_column=u'correlativo', blank=True)),
+            ('estatus', self.gf('django.db.models.fields.IntegerField')(null=True, db_column=u'estatus', blank=True)),
             ('counter', self.gf('django.db.models.fields.IntegerField')(db_column=u'_counter', blank=True)),
             ('field_owner_id', self.gf('django.db.models.fields.related.ForeignKey')(default=u'admin', to=orm['dbadmin.Usuario'], db_column=u'_owner_id')),
             ('field_inst_id', self.gf('django.db.models.fields.CharField')(default=u'backend', max_length=128, db_column=u'_inst_id')),
@@ -422,14 +491,26 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal(u'dbadmin', ['Usuario'])
 
+        # Adding model 'Secuencia'
+        db.create_table(u'secuencia', (
+            ('contador', self.gf('django.db.models.fields.IntegerField')(primary_key=True)),
+        ))
+        db.send_create_signal(u'dbadmin', ['Secuencia'])
+
 
     def backwards(self, orm):
         
+        # Deleting model 'Bitacora'
+        db.delete_table(u'bitacora')
+
         # Deleting model 'Grupo'
         db.delete_table(u'grupo')
 
         # Deleting model 'Banco'
         db.delete_table(u'ps_banco')
+
+        # Deleting model 'BancoCuenta'
+        db.delete_table(u'ps_banco_cuenta')
 
         # Deleting model 'Categoria'
         db.delete_table(u'ps_categoria')
@@ -439,6 +520,12 @@ class Migration(SchemaMigration):
 
         # Deleting model 'Cobranza'
         db.delete_table(u'ps_cobranza')
+
+        # Deleting model 'CobranzaCuentaCuentaPorCobrar'
+        db.delete_table(u'ps_cobranza_cuenta_por_cobrar')
+
+        # Deleting model 'Configuracion'
+        db.delete_table(u'ps_configuracion')
 
         # Deleting model 'CuentaPorCobrar'
         db.delete_table(u'ps_cuenta_por_cobrar')
@@ -484,6 +571,9 @@ class Migration(SchemaMigration):
 
         # Deleting model 'Usuario'
         db.delete_table(u'usuario')
+
+        # Deleting model 'Secuencia'
+        db.delete_table(u'secuencia')
 
 
     models = {
@@ -536,6 +626,28 @@ class Migration(SchemaMigration):
             'id_surrogate': ('django.db.models.fields.CharField', [], {'max_length': '192L', 'primary_key': 'True', 'db_column': "u'_surrogate_id'"}),
             'nombre': ('django.db.models.fields.CharField', [], {'max_length': '64L'})
         },
+        u'dbadmin.bancocuenta': {
+            'Meta': {'object_name': 'BancoCuenta', 'db_table': "u'ps_banco_cuenta'"},
+            'counter': ('django.db.models.fields.IntegerField', [], {'max_length': '16L', 'db_column': "u'_counter'"}),
+            'cuenta': ('django.db.models.fields.CharField', [], {'max_length': '64L'}),
+            'field_deleted': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'db_column': "u'_deleted'"}),
+            'field_group_id': ('django.db.models.fields.related.ForeignKey', [], {'default': "u'admin'", 'to': u"orm['dbadmin.Grupo']", 'db_column': "u'_group_id'"}),
+            'field_inst_id': ('django.db.models.fields.CharField', [], {'default': "u'backend'", 'max_length': '128', 'db_column': "u'_inst_id'"}),
+            'field_owner_id': ('django.db.models.fields.related.ForeignKey', [], {'default': "u'admin'", 'to': u"orm['dbadmin.Usuario']", 'db_column': "u'_owner_id'"}),
+            'field_permissions': ('django.db.models.fields.IntegerField', [], {'default': '0', 'db_column': "u'_permissions'"}),
+            'field_timestamp_c': ('synergy_ventasplus_web_admin.model_util.UnixTimestampField', [], {'max_length': '22', 'null': 'True', 'db_column': "u'_timestamp_c'"}),
+            'field_timestamp_m': ('synergy_ventasplus_web_admin.model_util.UnixTimestampField', [], {'db_column': "u'_timestamp_m'"}),
+            'id_banco': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['dbadmin.Banco']", 'db_column': "u'id_banco'"}),
+            'id_surrogate': ('django.db.models.fields.CharField', [], {'max_length': '192L', 'primary_key': 'True', 'db_column': "u'_surrogate_id'"})
+        },
+        u'dbadmin.bitacora': {
+            'Meta': {'object_name': 'Bitacora', 'db_table': "u'bitacora'"},
+            'extra': ('django.db.models.fields.CharField', [], {'max_length': '256L', 'null': 'True', 'blank': 'True'}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'operacion': ('django.db.models.fields.CharField', [], {'max_length': '64L'}),
+            'timestamp': ('synergy_ventasplus_web_admin.model_util.UnixTimestampField', [], {}),
+            'usuario': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['dbadmin.Usuario']", 'db_column': "u'usuario'"})
+        },
         u'dbadmin.categoria': {
             'Meta': {'object_name': 'Categoria', 'db_table': "u'ps_categoria'"},
             'counter': ('django.db.models.fields.IntegerField', [], {'db_column': "u'_counter'", 'blank': 'True'}),
@@ -573,6 +685,7 @@ class Migration(SchemaMigration):
             'id_lista_precio': ('django.db.models.fields.CharField', [], {'max_length': '16L'}),
             'id_surrogate': ('django.db.models.fields.CharField', [], {'max_length': '192L', 'primary_key': 'True', 'db_column': "u'_surrogate_id'"}),
             'identificacion': ('django.db.models.fields.CharField', [], {'max_length': '16L'}),
+            'limite_credito': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
             'pc_cargo': ('django.db.models.fields.CharField', [], {'max_length': '64L'}),
             'pc_celular': ('django.db.models.fields.CharField', [], {'max_length': '16L'}),
             'pc_correo_electronico': ('django.db.models.fields.CharField', [], {'max_length': '128L'}),
@@ -580,6 +693,7 @@ class Migration(SchemaMigration):
             'pc_nombre': ('django.db.models.fields.CharField', [], {'max_length': '64L'}),
             'pc_telefono': ('django.db.models.fields.CharField', [], {'max_length': '16L'}),
             'razon_social': ('django.db.models.fields.CharField', [], {'max_length': '64L'}),
+            'saldo_disponible': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
             'telefono1': ('django.db.models.fields.CharField', [], {'max_length': '16L', 'null': 'True', 'blank': 'True'}),
             'telefono2': ('django.db.models.fields.CharField', [], {'max_length': '16L', 'null': 'True', 'blank': 'True'}),
             'tipo': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'})
@@ -587,7 +701,9 @@ class Migration(SchemaMigration):
         u'dbadmin.cobranza': {
             'Meta': {'object_name': 'Cobranza', 'db_table': "u'ps_cobranza'"},
             'concepto': ('django.db.models.fields.CharField', [], {'max_length': '64L'}),
+            'correlativo': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'db_column': "u'correlativo'", 'blank': 'True'}),
             'counter': ('django.db.models.fields.IntegerField', [], {'db_column': "u'_counter'", 'blank': 'True'}),
+            'cuentasporcobrar': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['dbadmin.CuentaPorCobrar']", 'through': u"orm['dbadmin.CobranzaCuentaCuentaPorCobrar']", 'symmetrical': 'False'}),
             'fecha': ('django.db.models.fields.DateField', [], {'null': 'True', 'blank': 'True'}),
             'fecha_impreso': ('django.db.models.fields.DateField', [], {'null': 'True', 'blank': 'True'}),
             'field_deleted': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'db_column': "u'_deleted'"}),
@@ -598,13 +714,44 @@ class Migration(SchemaMigration):
             'field_timestamp_c': ('synergy_ventasplus_web_admin.model_util.UnixTimestampField', [], {'max_length': '22', 'null': 'True', 'db_column': "u'_timestamp_c'"}),
             'field_timestamp_m': ('synergy_ventasplus_web_admin.model_util.UnixTimestampField', [], {'db_column': "u'_timestamp_m'"}),
             'id_cliente': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['dbadmin.Cliente']", 'db_column': "u'id_cliente'"}),
-            'id_cobrador': ('django.db.models.fields.CharField', [], {'max_length': '64L'}),
+            'id_cobrador': ('django.db.models.fields.CharField', [], {'max_length': '192L'}),
             'id_surrogate': ('django.db.models.fields.CharField', [], {'max_length': '192L', 'primary_key': 'True', 'db_column': "u'_surrogate_id'"}),
             'impreso': ('django.db.models.fields.NullBooleanField', [], {'null': 'True', 'blank': 'True'}),
             'latitud': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
             'longitud': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
             'monto': ('django.db.models.fields.FloatField', [], {}),
             'numero_recibo': ('django.db.models.fields.CharField', [], {'max_length': '64L'})
+        },
+        u'dbadmin.cobranzacuentacuentaporcobrar': {
+            'Meta': {'object_name': 'CobranzaCuentaCuentaPorCobrar', 'db_table': "u'ps_cobranza_cuenta_por_cobrar'"},
+            'counter': ('django.db.models.fields.IntegerField', [], {'db_column': "u'_counter'", 'blank': 'True'}),
+            'fecha': ('django.db.models.fields.DateField', [], {'null': 'True', 'blank': 'True'}),
+            'field_deleted': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'db_column': "u'_deleted'"}),
+            'field_group_id': ('django.db.models.fields.related.ForeignKey', [], {'default': "u'admin'", 'to': u"orm['dbadmin.Grupo']", 'db_column': "u'_group_id'"}),
+            'field_inst_id': ('django.db.models.fields.CharField', [], {'default': "u'backend'", 'max_length': '128', 'db_column': "u'_inst_id'"}),
+            'field_owner_id': ('django.db.models.fields.related.ForeignKey', [], {'default': "u'admin'", 'to': u"orm['dbadmin.Usuario']", 'db_column': "u'_owner_id'"}),
+            'field_permissions': ('django.db.models.fields.IntegerField', [], {'default': '0', 'db_column': "u'_permissions'"}),
+            'field_timestamp_c': ('synergy_ventasplus_web_admin.model_util.UnixTimestampField', [], {'max_length': '22', 'null': 'True', 'db_column': "u'_timestamp_c'"}),
+            'field_timestamp_m': ('synergy_ventasplus_web_admin.model_util.UnixTimestampField', [], {'db_column': "u'_timestamp_m'"}),
+            'id_cliente': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['dbadmin.Cliente']", 'db_column': "u'id_cliente'"}),
+            'id_cobranza': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['dbadmin.Cobranza']", 'db_column': "u'id_cobranza'"}),
+            'id_cuenta_por_cobrar': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['dbadmin.CuentaPorCobrar']", 'db_column': "u'id_cuenta_por_cobrar'"}),
+            'id_surrogate': ('django.db.models.fields.CharField', [], {'max_length': '192L', 'primary_key': 'True', 'db_column': "u'_surrogate_id'"}),
+            'tipo': ('django.db.models.fields.CharField', [], {'max_length': '64L', 'null': 'True', 'blank': 'True'})
+        },
+        u'dbadmin.configuracion': {
+            'Meta': {'object_name': 'Configuracion', 'db_table': "u'ps_configuracion'"},
+            'clave': ('django.db.models.fields.CharField', [], {'max_length': '192L'}),
+            'counter': ('django.db.models.fields.IntegerField', [], {'db_column': "u'_counter'", 'blank': 'True'}),
+            'field_deleted': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'db_column': "u'_deleted'"}),
+            'field_group_id': ('django.db.models.fields.related.ForeignKey', [], {'default': "u'admin'", 'to': u"orm['dbadmin.Grupo']", 'db_column': "u'_group_id'"}),
+            'field_inst_id': ('django.db.models.fields.CharField', [], {'default': "u'backend'", 'max_length': '128', 'db_column': "u'_inst_id'"}),
+            'field_owner_id': ('django.db.models.fields.related.ForeignKey', [], {'default': "u'admin'", 'to': u"orm['dbadmin.Usuario']", 'db_column': "u'_owner_id'"}),
+            'field_permissions': ('django.db.models.fields.IntegerField', [], {'default': '0', 'db_column': "u'_permissions'"}),
+            'field_timestamp_c': ('synergy_ventasplus_web_admin.model_util.UnixTimestampField', [], {'max_length': '22', 'null': 'True', 'db_column': "u'_timestamp_c'"}),
+            'field_timestamp_m': ('synergy_ventasplus_web_admin.model_util.UnixTimestampField', [], {'db_column': "u'_timestamp_m'"}),
+            'id_surrogate': ('django.db.models.fields.CharField', [], {'max_length': '192L', 'primary_key': 'True', 'db_column': "u'_surrogate_id'"}),
+            'valor': ('django.db.models.fields.CharField', [], {'max_length': '192L', 'null': 'True', 'blank': 'True'})
         },
         u'dbadmin.cuentaporcobrar': {
             'Meta': {'object_name': 'CuentaPorCobrar', 'db_table': "u'ps_cuenta_por_cobrar'"},
@@ -622,15 +769,17 @@ class Migration(SchemaMigration):
             'field_timestamp_c': ('synergy_ventasplus_web_admin.model_util.UnixTimestampField', [], {'max_length': '22', 'null': 'True', 'db_column': "u'_timestamp_c'"}),
             'field_timestamp_m': ('synergy_ventasplus_web_admin.model_util.UnixTimestampField', [], {'db_column': "u'_timestamp_m'"}),
             'id_cliente': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['dbadmin.Cliente']", 'db_column': "u'id_cliente'"}),
-            'id_cobranza': ('django.db.models.fields.related.ForeignKey', [], {'default': 'None', 'to': u"orm['dbadmin.Cobranza']", 'null': 'True', 'db_column': "u'id_cobranza'", 'blank': 'True'}),
             'id_surrogate': ('django.db.models.fields.CharField', [], {'max_length': '192L', 'primary_key': 'True', 'db_column': "u'_surrogate_id'"}),
             'monto_original': ('django.db.models.fields.FloatField', [], {}),
             'numero_documento': ('django.db.models.fields.CharField', [], {'max_length': '64L'}),
             'procesada': ('django.db.models.fields.NullBooleanField', [], {'null': 'True', 'blank': 'True'}),
-            'saldo_actual': ('django.db.models.fields.FloatField', [], {})
+            'saldo_actual': ('django.db.models.fields.FloatField', [], {}),
+            'saldo_erp': ('django.db.models.fields.FloatField', [], {}),
+            'tipo': ('django.db.models.fields.CharField', [], {'max_length': '64L', 'null': 'True', 'blank': 'True'})
         },
         u'dbadmin.deposito': {
             'Meta': {'object_name': 'Deposito', 'db_table': "u'ps_deposito'"},
+            'correlativo': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'db_column': "u'correlativo'", 'blank': 'True'}),
             'counter': ('django.db.models.fields.IntegerField', [], {'db_column': "u'_counter'", 'blank': 'True'}),
             'cuenta': ('django.db.models.fields.CharField', [], {'max_length': '64L'}),
             'fecha': ('django.db.models.fields.DateField', [], {'null': 'True', 'blank': 'True'}),
@@ -780,6 +929,7 @@ class Migration(SchemaMigration):
             'field_timestamp_c': ('synergy_ventasplus_web_admin.model_util.UnixTimestampField', [], {'max_length': '22', 'null': 'True', 'db_column': "u'_timestamp_c'"}),
             'field_timestamp_m': ('synergy_ventasplus_web_admin.model_util.UnixTimestampField', [], {'db_column': "u'_timestamp_m'"}),
             'id_banco': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['dbadmin.Banco']", 'null': 'True', 'db_column': "u'id_banco'", 'blank': 'True'}),
+            'id_cliente': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['dbadmin.Cliente']", 'db_column': "u'id_cliente'"}),
             'id_cobranza': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['dbadmin.Cobranza']", 'db_column': "u'id_cobranza'"}),
             'id_deposito': ('django.db.models.fields.related.ForeignKey', [], {'default': 'None', 'to': u"orm['dbadmin.Deposito']", 'null': 'True', 'db_column': "u'id_deposito'", 'blank': 'True'}),
             'id_metodo_pago': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['dbadmin.MetodoPago']", 'db_column': "u'id_metodo_pago'"}),
@@ -792,10 +942,12 @@ class Migration(SchemaMigration):
         u'dbadmin.pedido': {
             'Meta': {'object_name': 'Pedido', 'db_table': "u'ps_pedido'"},
             'comentario': ('django.db.models.fields.CharField', [], {'max_length': '255L'}),
+            'correlativo': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'db_column': "u'correlativo'", 'blank': 'True'}),
             'counter': ('django.db.models.fields.IntegerField', [], {'db_column': "u'_counter'", 'blank': 'True'}),
             'descuento_maestro': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
             'descuento_otro1': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
             'descuento_otro2': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
+            'estatus': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'db_column': "u'estatus'", 'blank': 'True'}),
             'fecha': ('django.db.models.fields.DateField', [], {'null': 'True', 'blank': 'True'}),
             'fecha_entrega': ('django.db.models.fields.DateField', [], {'null': 'True', 'blank': 'True'}),
             'field_deleted': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'db_column': "u'_deleted'"}),
@@ -845,6 +997,10 @@ class Migration(SchemaMigration):
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'nombre': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['dbadmin.Grupo']", 'db_column': "u'nombre'"}),
             'username': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['dbadmin.Usuario']", 'db_column': "u'username'"})
+        },
+        u'dbadmin.secuencia': {
+            'Meta': {'object_name': 'Secuencia', 'db_table': "u'secuencia'"},
+            'contador': ('django.db.models.fields.IntegerField', [], {'primary_key': 'True'})
         },
         u'dbadmin.unidad': {
             'Meta': {'object_name': 'Unidad', 'db_table': "u'ps_unidad'"},

@@ -35,6 +35,14 @@ class SuperModel(models.Model):
     class Meta:
         abstract = True
         
+class Bitacora(models.Model):
+    usuario = models.ForeignKey('Usuario',db_column='usuario')
+    operacion = models.CharField(max_length=64L,null=False, blank=False)
+    timestamp = model_util.UnixTimestampField(null=False, blank=False) # Field renamed because it started with '_'.
+    extra = models.CharField(max_length=256L,null=True, blank=True)
+    class Meta:
+        db_table = 'bitacora'
+        
 class Grupo(models.Model):
     nombre = models.CharField(max_length=64L, primary_key=True)
     descripcion = models.CharField(max_length=512L, blank=False)
@@ -43,6 +51,7 @@ class Grupo(models.Model):
     field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
         db_table = 'grupo'
+                
         
 class Banco(SuperModel):
     id_surrogate= models.CharField(max_length=192L,primary_key=True,db_column='_surrogate_id')
@@ -60,6 +69,23 @@ class Banco(SuperModel):
         db_table = 'ps_banco'
     def __unicode__(self):
         return self.nombre        
+
+class BancoCuenta(SuperModel):
+    id_surrogate= models.CharField(max_length=192L,primary_key=True,db_column='_surrogate_id')
+    id_banco = models.ForeignKey('Banco', db_column='id_banco', verbose_name=u'Banco')      
+    cuenta = models.CharField(max_length=64L, blank=False) 
+    counter=models.IntegerField( max_length=16L, db_column='_counter', null=False, blank=False)
+    field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id', default='admin') # Field renamed because it started with '_'.
+    field_inst_id  = models.CharField(max_length=128, db_column='_inst_id', default='backend')
+    field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=False, default='admin') # Field renamed because it started with '_'.
+    field_permissions = models.IntegerField( db_column='_permissions', null=False, default=0) # Field renamed because it started with '_'.
+    field_timestamp_c = model_util.UnixTimestampField(max_length=22, db_column='_timestamp_c',null=True, blank=False) # Field renamed because it started with '_'.    
+    field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
+    class Meta:
+        db_table = 'ps_banco_cuenta'
+    def __unicode__(self):
+        return self.cuenta  
 
 class Categoria(SuperModel):
     id_surrogate= models.CharField(max_length=192L,primary_key=True,db_column='_surrogate_id')
@@ -93,6 +119,8 @@ class Cliente(SuperModel):
     comentario = models.CharField(max_length=255L, blank=False)
     tipo = models.IntegerField(null=True, blank=True)
     flete = models.FloatField(null=True, blank=True)
+    limite_credito = models.FloatField(null=True, blank=True)
+    saldo_disponible = models.FloatField(null=True, blank=True)
     descuento_maestro = models.FloatField(null=True, blank=True)
     descuento_otro1 = models.FloatField(null=True, blank=True)
     descuento_otro2 = models.FloatField(null=True, blank=True)
@@ -126,7 +154,7 @@ class Cobranza(SuperModel):
     impreso = models.NullBooleanField(null=True, blank=True)
     fecha_impreso = models.DateField(null=True, blank=True)
     fecha = models.DateField(null=True, blank=True)
-    id_cobrador = models.CharField(max_length=64L,null=False, blank=False,verbose_name="Cobrador")
+    id_cobrador = models.CharField(max_length=192L,null=False, blank=False,verbose_name="Cobrador")
     #FIXME: CHANGED TO FK
     #id_cliente = models.IntegerField(null=True, blank=True)
     id_cliente = models.ForeignKey('Cliente', db_column='id_cliente',verbose_name="Cliente")    
@@ -134,6 +162,7 @@ class Cobranza(SuperModel):
     concepto = models.CharField(max_length=64L, blank=False)
     latitud = models.FloatField(null=True, blank=True)
     longitud = models.FloatField(null=True, blank=True)
+    correlativo=models.IntegerField( db_column='correlativo', null=True, blank=True)
     counter=models.IntegerField( db_column='_counter', null=False, blank=True)
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id', default='admin') # Field renamed because it started with '_'.
     field_inst_id  = models.CharField(max_length=128, db_column='_inst_id', default='backend')
@@ -143,28 +172,18 @@ class Cobranza(SuperModel):
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
     field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
-
         db_table = 'ps_cobranza'
     def __unicode__(self):
         return '#'+self.numero_recibo+" ("+self.concepto+")"
 
-class CuentaPorCobrar(SuperModel):
+
+class CobranzaCuentaPorCobrar(SuperModel):
     id_surrogate= models.CharField(max_length=192L,primary_key=True,db_column='_surrogate_id')
-    numero_documento = models.CharField(max_length=64L, blank=False,verbose_name="N\xFAmero")
-    monto_original = models.FloatField(null=False, blank=False)
-    saldo_actual = models.FloatField(null=False, blank=False)
-    fecha_documento = models.DateField(null=False, blank=False)
-    fecha_despacho = models.DateField(null=True, blank=True)
-    fecha_vencimiento = models.DateField(null=False, blank=False)
-    fecha_entrega = models.DateField(null=True, blank=True)
-    procesada = models.NullBooleanField(null=True, blank=True)
-    cancelada = models.NullBooleanField(null=True, blank=True)
-    #FIXME: CHANGED TO FK
-    #id_cliente = models.IntegerField(null=True, blank=True)
-    id_cliente = models.ForeignKey('Cliente', db_column='id_cliente',verbose_name="Cliente")   
-    #FIXME: CHANGED TO FK
-    #id_cobranza = models.IntegerField(null=True, blank=True)
-    id_cobranza = models.ForeignKey('Cobranza', db_column='id_cobranza',null=True, blank=True,verbose_name="Cobranza",default=None)   
+    id_cobranza = models.ForeignKey('Cobranza', db_column='id_cobranza',null=False, blank=False,verbose_name="Cobranza") 
+    id_cuenta_por_cobrar = models.ForeignKey('CuentaPorCobrar', db_column='id_cuenta_por_cobrar',null=False, blank=False,verbose_name="Cuenta por cobrar") 
+    fecha = models.DateField(null=True, blank=True)
+    tipo=models.CharField(max_length=64L ,null=True, blank=True)
+    id_cliente = models.ForeignKey('Cliente', db_column='id_cliente',verbose_name="Cliente")    
     counter=models.IntegerField( db_column='_counter', null=False, blank=True)
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id', default='admin') # Field renamed because it started with '_'.
     field_inst_id  = models.CharField(max_length=128, db_column='_inst_id', default='backend')
@@ -173,6 +192,59 @@ class CuentaPorCobrar(SuperModel):
     field_timestamp_c = model_util.UnixTimestampField(max_length=22, db_column='_timestamp_c',null=True, blank=False) # Field renamed because it started with '_'.    
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
     field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
+    class Meta:
+        db_table = 'ps_cobranza_cuenta_por_cobrar'
+    def __unicode__(self):
+        return str(self.id_cobranza)+" ("+str(self.id_cuenta_por_cobrar)+")"
+
+class Configuracion(SuperModel):
+    id_surrogate= models.CharField(max_length=192L,primary_key=True,db_column='_surrogate_id')
+    clave= models.CharField(max_length=192L,null=False, blank=False)
+    valor= models.CharField(max_length=192L,null=True, blank=True)
+    counter=models.IntegerField( db_column='_counter', null=False, blank=True)
+    field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id', default='admin') # Field renamed because it started with '_'.
+    field_inst_id  = models.CharField(max_length=128, db_column='_inst_id', default='backend')
+    field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=False, default='admin') # Field renamed because it started with '_'.
+    field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
+    field_timestamp_c = model_util.UnixTimestampField(max_length=22, db_column='_timestamp_c',null=True, blank=False) # Field renamed because it started with '_'.    
+    field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
+    class Meta:
+        db_table = 'ps_configuracion'
+    def __unicode__(self):
+        return self.clave
+
+class CuentaPorCobrar(SuperModel):
+    id_surrogate= models.CharField(max_length=192L,primary_key=True,db_column='_surrogate_id')
+    numero_documento = models.CharField(max_length=64L, blank=False,verbose_name="N\xFAmero")
+    monto_original = models.FloatField(null=False, blank=False)
+    saldo_actual = models.FloatField(null=False, blank=False)
+    saldo_erp = models.FloatField(null=False, blank=False)
+
+    fecha_documento = models.DateField(null=False, blank=False)
+    fecha_despacho = models.DateField(null=True, blank=True)
+    fecha_vencimiento = models.DateField(null=False, blank=False)
+    fecha_entrega = models.DateField(null=True, blank=True)
+    tipo=models.CharField(max_length=64L ,null=True, blank=True)
+
+    procesada = models.NullBooleanField(null=True, blank=True)
+    cancelada = models.NullBooleanField(null=True, blank=True)
+    #FIXME: CHANGED TO FK
+    #id_cliente = models.IntegerField(null=True, blank=True)
+    id_cliente = models.ForeignKey('Cliente', db_column='id_cliente',verbose_name="Cliente")   
+    #FIXME: CHANGED TO FK
+    #id_cobranza = models.IntegerField(null=True, blank=True)
+#    id_cobranza = models.ForeignKey('Cobranza', db_column='id_cobranza',null=True, blank=True,verbose_name="Cobranza",default=None)   
+    counter=models.IntegerField( db_column='_counter', null=False, blank=True)
+    field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id', default='admin') # Field renamed because it started with '_'.
+    field_inst_id  = models.CharField(max_length=128, db_column='_inst_id', default='backend')
+    field_group_id = models.ForeignKey('Grupo', db_column='_group_id', blank=False, default='admin') # Field renamed because it started with '_'.
+    field_permissions = models.IntegerField(null=False, db_column='_permissions', blank=False,default=0) # Field renamed because it started with '_'.
+    field_timestamp_c = model_util.UnixTimestampField(max_length=22, db_column='_timestamp_c',null=True, blank=False) # Field renamed because it started with '_'.    
+    field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
+    field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
+    cobranzas = models.ManyToManyField('Cobranza', through=CobranzaCuentaPorCobrar)
+
     class Meta:
 
         db_table = 'ps_cuenta_por_cobrar'
@@ -199,6 +271,7 @@ class Deposito(SuperModel):
     cuenta = models.CharField(max_length=64L, blank=False)
     latitud = models.FloatField(null=True, blank=True)
     longitud = models.FloatField(null=True, blank=True)
+    correlativo=models.IntegerField( db_column='correlativo', null=True, blank=True)    
     counter=models.IntegerField( db_column='_counter', null=False, blank=True)
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id', default='admin') # Field renamed because it started with '_'.
     field_inst_id  = models.CharField(max_length=128, db_column='_inst_id', default='backend')
@@ -381,6 +454,7 @@ class Pago(SuperModel):
     numero_documento = models.CharField(max_length=64L, blank=False,verbose_name="N\xFAmero de documento")
     titular = models.CharField(max_length=64L, blank=False)
     saldo = models.FloatField(null=False, blank=False)
+    id_cliente = models.ForeignKey('Cliente', db_column='id_cliente', verbose_name='Cliente')    
     #FIXME: CHANGED TO FK
     #id_cobranza = models.IntegerField(null=True, blank=True)
     id_cobranza = models.ForeignKey('Cobranza', db_column='id_cobranza',verbose_name=u'Cobranza')   
@@ -429,6 +503,8 @@ class Pedido(SuperModel):
     #FIXME: CHANGED TO FK
     #id_metodo_pago = models.IntegerField(null=True, blank=True)
     id_metodo_pago = models.ForeignKey('MetodoPago', db_column='id_metodo_pago',verbose_name=u'M\xE9todo de Pago', null=True, blank=True)
+    correlativo=models.IntegerField( db_column='correlativo', null=True, blank=True)    
+    estatus=models.IntegerField( db_column='estatus', null=True, blank=True)    
     counter=models.IntegerField( db_column='_counter', null=False, blank=True)
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id', default='admin') # Field renamed because it started with '_'.
     field_inst_id  = models.CharField(max_length=128, db_column='_inst_id', default='backend')
@@ -594,3 +670,9 @@ class Usuario(models.Model):
     def __unicode__(self):
         return self.username
     
+class Secuencia(models.Model):
+    contador = models.IntegerField(primary_key=True)
+    class Meta:
+        db_table = 'secuencia'
+    def __unicode__(self):
+        return self.contador    

@@ -12,7 +12,8 @@ from django.utils.translation import ugettext_lazy as _
 from django.contrib.admin import forms, helpers
 from django import forms
 from django.contrib.admin.widgets import FilteredSelectMultiple
-from django.forms.models import ModelChoiceField, BaseInlineFormSet
+from django.forms.models import ModelChoiceField, BaseInlineFormSet,\
+    modelformset_factory, inlineformset_factory
 from django.core.urlresolvers import reverse
 import datetime
 from django.contrib.admin.templatetags.admin_list import date_hierarchy
@@ -20,7 +21,7 @@ from django.contrib.auth.models import Group, User
 from django.contrib.sites.models import Site
 import time
 from dbadmin.models import Grupo, Motivo, VisitaReschedule, VisitaClose,\
-    DetalleProducto, Categoria, Pago, Banco, MetodoPago
+    DetalleProducto, Categoria, Pago, Banco, MetodoPago, CobranzaCuentaPorCobrar
 from dbadmin.filters import ProductTreeListFilter, DateRangeFilter
 from django.db import models, router
 from django.db.models.signals import post_save
@@ -133,16 +134,6 @@ class PagoRequireOneFormSet(BaseInlineFormSet):
         form.instance.counter=form.cleaned_data['counter']
         form.instance.field_timestamp_c=form.cleaned_data['field_timestamp_c']
         return super(PagoRequireOneFormSet, self).save_new(form, commit=commit)
-
-    
-    monto = models.FloatField(null=True, blank=True)
-    id_banco = models.ForeignKey('Banco', db_column='id_banco')     
-    fecha_documento = models.DateField(null=True, blank=True)
-    numero_documento = models.CharField(max_length=64L, blank=False,verbose_name="N\xFAmero de documento")
-    titular = models.CharField(max_length=64L, blank=False)
-    saldo = models.FloatField(null=True, blank=True)
-    id_cobranza = models.ForeignKey('Cobranza', db_column='id_cobranza')   
-    id_deposito = models.ForeignKey('Deposito', db_column='id_deposito',verbose_name=u'Dep\xF3sito')     
     
 class PagoInline(admin.StackedInline):
     model = Pago
@@ -466,14 +457,92 @@ class UsuarioAdmin(VentasPlusModelAdmin):
 
 admin.site.register(Usuario,UsuarioAdmin)
 
-class CuentaPorCobrarAdminForm(VentasPlusModelAdmin):
-    numero = forms.CharField(required=True,label=u'N\xFAmero')        
 
 
 class ClienteListFilter(AllValuesFieldListFilter):
     def __init__(self, field, request, params, model, model_admin, field_path):
         super(ClienteListFilter, self).__init__( field, request, params, model, model_admin, field_path)
         self.title="Cliente"
+
+
+class CobranzaCuentaPorCobrarAdminForm(forms.ModelForm):
+    numero_recibo = forms.CharField(max_length=64L, label=u"N\xFAmero de recibo")
+    impreso = forms.NullBooleanField(required=False)
+    fecha_impreso = forms.DateField(required=False)
+    fecha = forms.DateField(required=False)
+    id_cobrador = forms.CharField(max_length=192L, label="Cobrador")
+    id_cliente = forms.ModelChoiceField(queryset=Cliente.objects.all(),required=True,label=u'Cliente')   
+    monto = forms.FloatField()
+    concepto = forms.CharField(max_length=64L)
+    latitud = forms.FloatField(required=False)
+    longitud = forms.FloatField(required=False)
+    def __init__(self, *args, **kwargs):
+        super(CobranzaCuentaPorCobrarAdminForm, self).__init__(*args, **kwargs)
+        #cob=Cobranza.objects.get(pk=cinstance.id_cobranza)
+        if self.instance.id_cobranza_id:
+            cinstance=self.instance.id_cobranza
+            self.fields['numero_recibo']=forms.CharField(max_length=64L, label=u"N\xFAmero de recibo",initial=cinstance.numero_recibo )
+            self.fields['impreso'] = forms.NullBooleanField(required=False,initial=cinstance.impreso)
+            self.fields['fecha_impreso'] = forms.DateField(required=False,initial=cinstance.fecha_impreso)
+            self.fields['fecha'] = forms.DateField(required=False,initial=cinstance.fecha)
+            self.fields['id_cobrador'] = forms.CharField(max_length=192L, label="Cobrador",initial=cinstance.id_cobrador)
+            self.fields['id_cliente'] = forms.ModelChoiceField(queryset=Cliente.objects.all(),required=True,label=u'Cliente',initial=cinstance.numero_recibo)   
+            self.fields['monto'] = forms.FloatField(initial=cinstance.monto)
+            self.fields['concepto'] = forms.CharField(max_length=64L,initial=cinstance.concepto)
+            self.fields['latitud'] = forms.FloatField(required=False,initial=cinstance.latitud)
+            self.fields['longitud'] = forms.FloatField(required=False,initial=cinstance.longitud)
+
+class CobranzaRequireOneFormSet(BaseInlineFormSet):
+    """Require at least one form in the formset to be completed."""
+    def clean(self):
+        """Check that at least one form has been completed."""
+        super(CobranzaRequireOneFormSet, self).clean()
+        for error in self.errors:
+            if error:
+                return
+        completed = 0
+        if self.form.base_fields:
+            for cleaned_data in self.cleaned_data:
+                cleaned_data['field_timestamp_c']=datetime.datetime.now()+datetime.timedelta(seconds=completed)
+                cleaned_data['counter']=int(time.time()+completed)  
+                if cleaned_data and not cleaned_data.get('DELETE', False):
+                    completed += 1
+    
+            if completed < 1:
+                raise forms.ValidationError("Al menos un Pago es requerido.")
+            
+
+    def save_new(self, form, commit=True):
+        form.instance.counter=form.cleaned_data['counter']
+        form.instance.field_timestamp_c=form.cleaned_data['field_timestamp_c']
+        return super(CobranzaRequireOneFormSet, self).save_new(form, commit=commit)
+
+class CobranzaInline(admin.StackedInline):
+    model = CobranzaCuentaPorCobrar
+    extra= 1
+    form=CobranzaCuentaPorCobrarAdminForm
+    classes = ('collapse open',)
+    inline_classes = ('collapse open',)
+    verbose_name='Cobranza Asociada'
+    verbose_name_plural='Cobranzas Asociadas'
+    fieldsets = (
+        (None, {
+            'fields': ( 'numero_recibo','impreso','fecha_impreso','id_cliente','fecha','id_cobrador','monto', 'concepto')
+        }),
+                
+    )
+    def has_add_permission(self, request):
+        if request.user.is_superuser:
+            return True
+        return True    
+
+    def has_delete_permission(self, request, obj=None):
+        if request.user.is_superuser:
+            return True
+        return True
+
+    def save_model(self, request, obj, form, change):
+        obj.save()    
     
 class CuentaPorCobrarAdmin(VentasPlusModelAdmin):
     dateformat='%d/%m/%Y '
@@ -489,7 +558,7 @@ class CuentaPorCobrarAdmin(VentasPlusModelAdmin):
     change_saveasnew_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
     change_another_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
     change_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
-
+    inlines=[CobranzaInline]
     
     def format_fecha_vencimiento(self, obj):
         if (obj.fecha_vencimiento):
@@ -504,8 +573,7 @@ class CuentaPorCobrarAdmin(VentasPlusModelAdmin):
         obj.save()
     
 admin.site.register(CuentaPorCobrar,CuentaPorCobrarAdmin)
-
-
+    
 class CobranzaAdmin(VentasPlusModelAdmin):
     dateformat='%d/%m/%Y '
     list_display = ('numero_recibo','id_cliente','impreso','format_fecha_impreso','fecha','monto','concepto')
@@ -520,7 +588,6 @@ class CobranzaAdmin(VentasPlusModelAdmin):
     change_saveasnew_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
     change_another_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
     change_message='La %(name)s %(idC)s asociada al cliente "%(obj)s" fue modificada satisfactoriamente.'
-
     
     def format_fecha_impreso(self, obj):
         if (obj.fecha_impreso):
