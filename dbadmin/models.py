@@ -246,7 +246,6 @@ class CuentaPorCobrar(SuperModel):
     cobranzas = models.ManyToManyField('Cobranza', through=CobranzaCuentaPorCobrar)
 
     class Meta:
-
         db_table = 'ps_cuenta_por_cobrar'
         verbose_name_plural='Cuentas por cobrar'
     def __unicode__(self):

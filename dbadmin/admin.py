@@ -476,6 +476,7 @@ class CobranzaCuentaPorCobrarAdminForm(forms.ModelForm):
     concepto = forms.CharField(max_length=64L)
     latitud = forms.FloatField(required=False)
     longitud = forms.FloatField(required=False)
+    id_surrogate= forms.CharField(max_length=192L,required=False, widget=forms.HiddenInput)
     def __init__(self, *args, **kwargs):
         super(CobranzaCuentaPorCobrarAdminForm, self).__init__(*args, **kwargs)
         #cob=Cobranza.objects.get(pk=cinstance.id_cobranza)
@@ -491,6 +492,7 @@ class CobranzaCuentaPorCobrarAdminForm(forms.ModelForm):
             self.fields['concepto'] = forms.CharField(max_length=64L,initial=cinstance.concepto)
             self.fields['latitud'] = forms.FloatField(required=False,initial=cinstance.latitud)
             self.fields['longitud'] = forms.FloatField(required=False,initial=cinstance.longitud)
+            self.fields['id_surrogate'] = forms.CharField(max_length=192L,required=False, widget=forms.HiddenInput,initial=cinstance.id_surrogate)
 
 class CobranzaRequireOneFormSet(BaseInlineFormSet):
     """Require at least one form in the formset to be completed."""
@@ -571,7 +573,35 @@ class CuentaPorCobrarAdmin(VentasPlusModelAdmin):
         self.change_msg_dict={'name': force_text(obj._meta.verbose_name),'idC':force_text(obj.numero_documento),'obj':force_text(obj.id_cliente)}
         obj.field_owner_id = Usuario.objects.get(pk=request.user.usuario.username) 
         obj.save()
-    
+        
+  
+    def save_formset(self, request, form, formset, change):
+        formset.save(commit=False) 
+        #Since we are faking the Cobranza entity in the form for allowing creating the Cobranza instance through the m2m Model, we need to manually
+        #retrieve the Cobranza Data from the formset data. So we iterate through each instance of the m2m model and then through the cleaned data
+        #creating the Cobranza instance. 
+        for form in formset.forms:
+            data=form.cleaned_data
+            instance=form.instance
+            if data["id_surrogate"]:
+                cobranza=Cobranza.objects.get(pk=data["id_surrogate"])
+            else:
+                cobranza=Cobranza()
+            cobranza.numero_recibo=data["numero_recibo"]
+            cobranza.impreso=data["impreso"]
+            cobranza.fecha_impreso=data["fecha_impreso"]
+            cobranza.fecha=data["fecha"]
+            cobranza.id_cobrador=data["id_cobrador"]
+            cobranza.id_cliente=data["id_cliente"]
+            cobranza.monto=data["monto"]
+            cobranza.concepto=data["concepto"]
+            cobranza.latitud=data["latitud"]
+            cobranza.longitud=data["longitud"]                       
+            cobranza.save()            
+            instance.id_cobranza = cobranza
+            instance.save()
+        formset.save_m2m()
+            
 admin.site.register(CuentaPorCobrar,CuentaPorCobrarAdmin)
     
 class CobranzaAdmin(VentasPlusModelAdmin):
