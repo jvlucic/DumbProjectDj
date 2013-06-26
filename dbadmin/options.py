@@ -125,6 +125,11 @@ class VentasPlusModelAdmin(ModelAdmin):
         else:
             excludeList=['field_owner_id','field_inst_id','field_permissions','field_timestamp_c','field_timestamp_m','field_deleted','field_group_id']
 
+        if self.editable:
+            editableList=list(self.editable)
+        else:
+            editableList=list()
+            
         if self.declared_fieldsets:
             fields=flatten_fieldsets(self.declared_fieldsets)
         else:
@@ -132,8 +137,8 @@ class VentasPlusModelAdmin(ModelAdmin):
                 [field.name for field in self.opts.local_fields] +
                 [field.name for field in self.opts.local_many_to_many]
             ))
-
-        return list(set(fields) ^ set(excludeList))
+        c=list( ( set(fields)^set(excludeList) )^set(editableList) )
+        return list( ( set(fields)^set(excludeList) )^set(editableList) )
                 
     def has_add_permission(self, request):
           

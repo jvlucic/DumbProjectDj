@@ -477,6 +477,17 @@ class Pago(SuperModel):
     def save(self,*args,**kwargs):
         self.field_owner_id = self.id_deposito.field_owner_id
         super(Pago,self).save(*args,**kwargs)     
+
+class PedidoStatus():
+    SIN_APROBAR = 0
+    PRE_APROBADO = 5
+    APROBADO = 10
+    
+STATUS_CHOICES = (
+    (PedidoStatus.SIN_APROBAR, 'Sin Aprobar'),
+    (PedidoStatus.PRE_APROBADO, 'Pre-Aprobado'),
+    (PedidoStatus.APROBADO, 'Aprobado'),
+)
         
 class Pedido(SuperModel):
     id_surrogate= models.CharField(max_length=192L,primary_key=True,db_column='_surrogate_id')
@@ -503,7 +514,7 @@ class Pedido(SuperModel):
     #id_metodo_pago = models.IntegerField(null=True, blank=True)
     id_metodo_pago = models.ForeignKey('MetodoPago', db_column='id_metodo_pago',verbose_name=u'M\xE9todo de Pago', null=True, blank=True)
     correlativo=models.IntegerField( db_column='correlativo', null=True, blank=True)    
-    estatus=models.IntegerField( db_column='estatus', null=True, blank=True)    
+    estatus=models.IntegerField( db_column='estatus', null=True, blank=True,choices=STATUS_CHOICES)    
     counter=models.IntegerField( db_column='_counter', null=False, blank=True)
     field_owner_id = models.ForeignKey('Usuario', db_column='_owner_id', default='admin') # Field renamed because it started with '_'.
     field_inst_id  = models.CharField(max_length=128, db_column='_inst_id', default='backend')
@@ -513,8 +524,12 @@ class Pedido(SuperModel):
     field_timestamp_m = model_util.UnixTimestampField(db_column='_timestamp_m',null=False, blank=False) # Field renamed because it started with '_'.
     field_deleted = models.BooleanField(db_column='_deleted',default=0) # Field renamed because it started with '_'.
     class Meta:
-
         db_table = 'ps_pedido'
+        permissions = (
+            ("preapprove_pedido", "Can pre-approve pedidos"),
+            ("approve_pedido", "Can approve pedidos"),
+        )        
+        
     def tiene_comentario(self):
         if (self.comentario!=u''):        
             return mark_safe('<img src="/static/admin/img/icon_success.gif" alt="Si">')

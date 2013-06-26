@@ -21,9 +21,10 @@ from django.contrib.auth.models import Group, User
 from django.contrib.sites.models import Site
 import time
 from dbadmin.models import Grupo, Motivo, VisitaReschedule, VisitaClose,\
-    DetalleProducto, Categoria, Pago, Banco, MetodoPago, CobranzaCuentaPorCobrar
+    DetalleProducto, Categoria, Pago, Banco, MetodoPago, CobranzaCuentaPorCobrar,\
+    PedidoStatus
 from dbadmin.filters import ProductTreeListFilter, DateRangeFilter
-from django.db import models, router
+from django.db import models, router, transaction
 from django.db.models.signals import post_save
 from django.contrib.comments.signals import comment_was_posted
 import re
@@ -38,9 +39,11 @@ from django.core.exceptions import PermissionDenied
 from django.contrib.admin.filters import RelatedFieldListFilter,\
     AllValuesFieldListFilter
 from django.contrib.admin.views.main import ChangeList
+from django.contrib.admin.options import csrf_protect_m
+from django.db.models.query_utils import Q
 
 
-admin.site.unregister(Group)
+#admin.site.unregister(Group)
 admin.site.unregister(Site)
 #admin.site.unregister(User)
 
@@ -198,13 +201,53 @@ class ItemPedidoInline(admin.StackedInline):
             return True
         return False
 
+class PedidoAdminForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)        
+        super(PedidoAdminForm, self).__init__(*args, **kwargs)
+        if self.request.user.groups.filter(name='cobranza').exists():
+            STATUS_CHOICES = (
+                (PedidoStatus.SIN_APROBAR, 'Sin Aprobar'),
+                (PedidoStatus.PRE_APROBADO, 'Pre-Aprobado'),
+            )
+        elif self.request.user.groups.filter(name='administracion').exists():
+            STATUS_CHOICES = (
+                (PedidoStatus.PRE_APROBADO, 'Pre-Aprobado'),
+                (PedidoStatus.APROBADO, 'Aprobado'),
+            )
+        else:
+            STATUS_CHOICES = (
+                (PedidoStatus.SIN_APROBAR, 'Sin Aprobar'),
+                (PedidoStatus.PRE_APROBADO, 'Pre-Aprobado'),
+                (PedidoStatus.APROBADO, 'Aprobado'),
+            )
+        initial= PedidoStatus.SIN_APROBAR if not (self.instance and self.instance.estatus) else self.instance.estatus
+        self.fields['estatus'] = forms.ChoiceField(choices=STATUS_CHOICES, initial=initial)
+    class Meta:
+        model = Pedido
+    
+        
+#Custom actions to update Pedido status from changelist view    
+def pre_approve(self, request, queryset):
+    queryset.update(estatus=PedidoStatus.PRE_APROBADO)
+pre_approve.short_description = "Pre-aprobar Pedidos"
+
+def approve(self, request, queryset):
+    queryset.update(estatus=PedidoStatus.APROBADO)
+approve.short_description = "Aprobar Pedidos"
+
+def unapprove(self, request, queryset):
+    queryset.update(estatus=PedidoStatus.SIN_APROBAR)
+unapprove.short_description = "Marcar como Sin Aprobar"
+
 class PedidoAdmin(VentasPlusModelAdmin):
-    list_display = ('format_fecha','format_fecha_entrega','format_cliente','total','format_vendedor','tiene_comentario')
+    list_display = ('format_fecha','format_fecha_entrega','format_cliente','total','format_vendedor','tiene_comentario','estatus')
     date_hierarchy = 'fecha'
     dateformat='%d/%m/%Y '
-    
+    form=PedidoAdminForm
     list_filter=[('fecha', DateRangeFilter)]
-    fields=['fecha','id_cliente','fecha_entrega','id_metodo_pago','numero','comentario','total']
+    fields=['fecha','id_cliente','fecha_entrega','id_metodo_pago','numero','comentario','total','estatus']
+    editable=[]
     
     add_continue_message=u'El %(name)s "%(obj)s" fue a\xF1adido satisfactoriamente'
     add_another_message=u'El %(name)s "%(obj)s" fue a\xF1adido satisfactoriamente'
@@ -217,6 +260,48 @@ class PedidoAdmin(VentasPlusModelAdmin):
     
     class Media:
         js = ("js/grappelli_custom_datepicker_template_dom_init.js",)
+
+    #Add custom action to the admin based on the user role
+    def get_actions(self, request):
+        actions = super(PedidoAdmin, self).get_actions(request)
+        if request.user.groups.filter(name='cobranza').exists():
+            actions['pre_approve']=(pre_approve,'pre_approve',pre_approve.short_description)
+            actions['unapprove']=(unapprove,'unapprove',unapprove.short_description)
+        elif request.user.groups.filter(name='administracion').exists():
+            actions['approve']=(approve,'approve',approve.short_description)
+            actions['pre_approve']=(pre_approve,'pre_approve',pre_approve.short_description)
+        elif request.user.is_superuser or request.user.groups.filter(name='master').exists():
+            actions['pre_approve']=(pre_approve,'pre_approve',pre_approve.short_description)
+            actions['approve']=(approve,'approve',approve.short_description)
+            actions['unapprove']=(unapprove,'unapprove',unapprove.short_description)            
+        return actions        
+   
+    #We filter queryset according to user group, in order for them to only see the right ones.
+    def queryset(self, request):
+        qs = super(PedidoAdmin, self).queryset(request)
+        if request.user.groups.filter(name='cobranza').exists():
+            return qs.filter( Q(estatus=PedidoStatus.SIN_APROBAR) | Q(estatus=PedidoStatus.PRE_APROBADO) | Q(estatus__isnull=True) ) 
+        elif request.user.groups.filter(name='administracion').exists():
+            return qs.filter( Q(estatus=PedidoStatus.PRE_APROBADO) | Q(estatus=PedidoStatus.APROBADO) ) 
+        return qs
+
+    #We permit having editable fields to the readonly model in the change views for the Pedido Model to allow status changes. 
+    @csrf_protect_m
+    @transaction.commit_on_success
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        if (request.user.groups.filter(name='cobranza').exists() or request.user.groups.filter(name='administracion').exists() or request.user.groups.filter(name='master').exists()  ): 
+            extra_context = extra_context or {}
+            self.editable=['estatus']
+            extra_context['has_editable_fields'] = True
+        return VentasPlusModelAdmin.change_view(self, request, object_id, form_url=form_url, extra_context=extra_context)
+    
+    def get_form(self, request, obj=None, **kwargs):
+        form = super(PedidoAdmin, self).get_form(request, obj, **kwargs)
+        class ModelFormMetaClass(form):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return form(*args, **kwargs)
+        return ModelFormMetaClass        
         
     def format_vendedor(self, obj):
         return obj.field_owner_id.nombre+" "+obj.field_owner_id.apellido
@@ -249,8 +334,6 @@ class PedidoAdmin(VentasPlusModelAdmin):
     inlines = [
         ItemPedidoInline,
     ]
-
-#    readonly_fields =['fecha', 'fecha_entrega','id_cliente','field_owner_id','total','numero','comentario','id_metodo_pago']
 
 admin.site.register(Pedido,PedidoAdmin)    
 

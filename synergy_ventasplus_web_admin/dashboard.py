@@ -11,6 +11,7 @@ from django.core.urlresolvers import reverse
 
 from grappelli.dashboard import modules, Dashboard
 from grappelli.dashboard.utils import get_admin_site_name
+from django.contrib.localflavor import no
 
 
 class CustomIndexDashboard(Dashboard):
@@ -22,8 +23,10 @@ class CustomIndexDashboard(Dashboard):
         
     def init_with_context(self, context):
         site_name = 'Administrador de Ventas Plus'
-                
-        
+        user=None
+        for dict in context.dicts: 
+            if 'user' in dict:
+                user=dict['user']
         # append an app list module for "Applications"
         self.children.append(modules.AppList(
             _('Entidades para administrar'),
@@ -33,43 +36,40 @@ class CustomIndexDashboard(Dashboard):
             exclude=('django.contrib.*','dbadmin.models.Visita','dbadmin.models.VisitaReschedule','dbadmin.models.VisitaClose'),
         ))
         
-
-        self.children.append(modules.LinkList(
-            _('Visitas'),
-            column=1,
-            children=[
-                {
-                    'title': _('Ver Visitas'),
-                    'url': '/admin/dbadmin/visita/',
-                    'external': False,
-                },                      
-                {
-                    'title': _('Agendar Visitas'),
-                    'url': '/admin/dbadmin/visita/add/',
-                    'external': False,
-                },
-                {
-                    'title': _('Reagendar Visitas'),
-                    'url': '/admin/dbadmin/visitareschedule/',
-                    'external': False,
-                },
-                {
-                    'title': _('Cerrar Visitas'),
-                    'url': '/admin/dbadmin/visitaclose/',
-                    'external': False,
-                },                                            
-            ]
-            
-        ))
-
-
-        
-        # append a recent actions module
-        self.children.append(modules.RecentActions(
-            _('Recent Actions'),
-            limit=5,
-            collapsible=False,
-            column=3,
-        ))
+        if user and not user.groups.filter(name='cobranza').exists() and not user.groups.filter(name='administracion').exists() and not user.groups.filter(name='master').exists() :
+            self.children.append(modules.LinkList(
+                _('Visitas'),
+                column=1,
+                children=[
+                    {
+                        'title': _('Ver Visitas'),
+                        'url': '/admin/dbadmin/visita/',
+                        'external': False,
+                    },                      
+                    {
+                        'title': _('Agendar Visitas'),
+                        'url': '/admin/dbadmin/visita/add/',
+                        'external': False,
+                    },
+                    {
+                        'title': _('Reagendar Visitas'),
+                        'url': '/admin/dbadmin/visitareschedule/',
+                        'external': False,
+                    },
+                    {
+                        'title': _('Cerrar Visitas'),
+                        'url': '/admin/dbadmin/visitaclose/',
+                        'external': False,
+                    },                                            
+                ]
+                
+            ))
+            # append a recent actions module
+            self.children.append(modules.RecentActions(
+                _('Recent Actions'),
+                limit=5,
+                collapsible=False,
+                column=3,
+            ))
 
 
